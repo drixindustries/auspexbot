@@ -12,6 +12,7 @@ import { fetchOHLCV, renderDualChart } from "./chartRenderer.js";
 import { fetchSafety } from "./safetyCheck.js";
 import { getSmartStats } from "./elfaClient.js";
 import { formatCallCard, formatEliteCallCard, formatMyStats, formatLeaderboard } from "./callFormatter.js";
+import { startSmartCallWatcher } from "./smartCallWatcher.js";
 import {
   formatPaymentMessage,
   formatSubConfirmed,
@@ -815,7 +816,7 @@ bot.catch((err, ctx) => {
 
 // ── Launch ────────────────────────────────────────────────────────────────
 
-console.log("👁  Vigil Bot starting...");
+console.log("👁  Auspex starting...");
 console.log(`   Price:    $${config.PRICE_USD}/month`);
 console.log(`   Channel:  ${config.CHANNEL_ID}`);
 console.log(`   RPC:      ${config.ALCHEMY_BASE_URL.includes("alchemy") ? "Alchemy" : "Public"}`);
@@ -825,8 +826,10 @@ console.log(`   Elite:    ${config.ELITE_CHANNEL_ID}`);
 console.log(`   Follow:   ${process.env.FOLLOW_CHANNEL_ID || "not set"}`);
 console.log(`   X API:    ${process.env.X_BEARER_TOKEN ? "configured" : "not set (Nitter fallback only)"}`);
 console.log(`   Elfa:     ${process.env.ELFA_API_KEY ? "configured" : "not set (get free key at elfa.ai/api)"}`);
+console.log(`   SmartCall:${process.env.SOURCE_CHAT_IDS ? ` monitoring ${process.env.SOURCE_CHAT_IDS.split(",").length} source group(s) — threshold ≥${process.env.SMART_FOLLOWER_THRESHOLD ?? 10}` : " SOURCE_CHAT_IDS not set"}`);
 
 // Start crons
+startSmartCallWatcher(bot);
 startAutoPost(bot);
 startAccessCron(bot);
 startAnomalyWatcher(bot);
