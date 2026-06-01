@@ -452,9 +452,7 @@ bot.command("call", async (ctx) => {
   const address = match ? match[0] : null;
 
   if (!address) {
-    return ctx.reply("❌ No valid address found\.
-
-Usage: `/call 0x1234\.\.\.abcd`", { parse_mode: "MarkdownV2" });
+    return ctx.reply("❌ No valid address found\.\n\nUsage: `/call 0x1234\.\.\.abcd`", { parse_mode: "MarkdownV2" });
   }
 
   // Duplicate call check — same token in last 24h
@@ -609,9 +607,7 @@ bot.command("verify", async (ctx) => {
 
   if (!xHandle) {
     return ctx.reply(
-      "Usage: `/verify @yourxhandle`
-
-Costs $20/month\. Adds Elfa smart follower weighting and a public Augur profile\.",
+      "Usage: `/verify @yourxhandle`\n\nCosts $20/month\\. Adds Elfa smart follower weighting and a public Augur profile\\.",
       { parse_mode: "MarkdownV2" }
     );
   }
@@ -793,11 +789,7 @@ bot.command("watchlist", async (ctx) => {
 
   if (accounts.length === 0) {
     return ctx.reply(
-      "👁 *X Watchlist*
-
-_No accounts being watched yet\._
-
-Add one with `/addaccount @handle`",
+      "👁 *X Watchlist*\n\n_No accounts being watched yet\._\n\nAdd one with `/addaccount @handle`",
       { parse_mode: "MarkdownV2" }
     );
   }
