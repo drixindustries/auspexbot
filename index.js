@@ -269,7 +269,7 @@ bot.command("check", async (ctx) => {
   }
 
   const safetyLine = safety
-    ? `${safety.verdictEmoji} Safety: ${safety.score}/10 ${safety.verdict === "SAFE" ? "✅" : ""} \| Buy: ${esc(safety.buyTax + "%")} Sell: ${esc(safety.sellTax + "%")}`
+    ? `${safety.verdictEmoji} Safety: ${esc(String(safety.score))}/10 ${safety.verdict === "SAFE" ? "✅" : ""} \\| Buy: ${esc(safety.buyTax + "%")} Sell: ${esc(safety.sellTax + "%")}`
     : `🛡 Safety: N/A`;
 
   const smartLine = smartFollows !== null
@@ -393,9 +393,7 @@ Write your analysis.`,
     function esc(s) { return String(s || "").replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&"); }
 
     await ctx.reply(
-      `🤖 *AI Analysis — ${esc(token.name)}*
-
-${esc(analysis)}`,
+      `🤖 *AI Analysis — ${esc(token.name)}*\n\n${esc(analysis)}`,
       { parse_mode: "MarkdownV2" }
     );
   } catch (err) {
