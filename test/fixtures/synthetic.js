@@ -2,6 +2,8 @@
 // worker run against live DexScreener/GeckoTerminal/PumpPortal/RugCheck on 2026-10-23) so every badge,
 // verdict and filter path is exercised. Addresses are fake but valid base58 / hex.
 import fs from "node:fs";
+import { outcomeRows } from "./outcomes.js";
+import { aggregateRows } from "../../lib/outcomes.js";
 
 export const ADDR = {
   provenSignal: "PRoVEN1sigNa1AAAAAAAAAAAAAAAAAAAAAAAAAAApump",
@@ -31,7 +33,12 @@ export function realPayload() {
   return JSON.parse(fs.readFileSync(new URL("./real-payload.json", import.meta.url), "utf8"));
 }
 
-export function buildPayload(nowMs = Date.now(), base = realPayload()) {
+/** payload.signalPerformance as the worker writes it (same aggregate; see test/parity.worker.test.js). */
+export function signalPerformance(nowMs = Date.now()) {
+  return { ...aggregateRows(outcomeRows(nowMs), { now: nowMs }), windowDays: 7, tracking: 6, inMemory: 92 };
+}
+
+export function buildPayload(nowMs = Date.now(), base = realPayload(), { perf = false } = {}) {
   const p = structuredClone(base);
   const iso = (minAgo) => new Date(nowMs - minAgo * 60_000).toISOString();
   p.generatedAt = iso(0);
@@ -78,5 +85,12 @@ export function buildPayload(nowMs = Date.now(), base = realPayload()) {
       devReputation: { bad: [confirmedBad], good: null } },
     ...(p.justGraduated || []),
   ];
+  // per-row "since signal" views (worker attachSignalPerf → sinceSignal)
+  const perfOf = (o) => ({ kind: "top_signal", firstSeenAt: iso(35), basis: "price", entryMcapUsd: 600_000, entryPriceUsd: 0.0006, returnPct: 42, lastAt: iso(1), maxUpPct: 61.5, maxDrawdownPct: -8.2, checkpoints: { "5m": 4.1, "15m": 18.9 }, rugged: false, liqCollapsed: false, status: "tracking", ...o });
+  p.chainGroups.solana[0].signalPerf = perfOf({});
+  p.chainGroups.solana[1].signalPerf = perfOf({ returnPct: -63.2, maxUpPct: 12, maxDrawdownPct: -70, checkpoints: { "5m": -2, "15m": -30, "1h": -63.2 }, firstSeenAt: iso(130) });
+  p.justLaunched[2].signalPerf = perfOf({ kind: "launch", basis: "mcap", returnPct: null, maxUpPct: null, maxDrawdownPct: null, checkpoints: {}, firstSeenAt: iso(2) });
+  p.justGraduated[1].signalPerf = perfOf({ kind: "graduation", returnPct: -97, rugged: true, liqCollapsed: true, maxUpPct: 15, maxDrawdownPct: -97, firstSeenAt: iso(6), checkpoints: { "5m": -97 }, status: "done" });
+  if (perf) p.signalPerformance = signalPerformance(nowMs);
   return p;
 }

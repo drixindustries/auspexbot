@@ -7,7 +7,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "test": "node --test test/*.test.js",
-    "test:parity": "AUSPEX_SITE_HTML=${AUSPEX_SITE_HTML:-../auspex-site/index.html} node --test test/parity.site.test.js",
+    "test:parity": "AUSPEX_SITE_HTML=${AUSPEX_SITE_HTML:-../auspex-site/index.html} AUSPEX_WORKER_SIGNAL_OUTCOMES=${AUSPEX_WORKER_SIGNAL_OUTCOMES:-../auspex-worker/lib/signal-outcomes.js} node --test test/parity.*.test.js",
     "lint": "eslint .",
     "check": "for f in *.js lib/*.js scripts/e2e/*.mjs; do node --check $f || exit 1; done",
     "e2e": "node scripts/e2e/run.mjs"

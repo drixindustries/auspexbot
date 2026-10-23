@@ -15,6 +15,7 @@ autopost, charts, and the smart-call and X-follow watchers.
 | `/launches`, `/grads` | Just launched (pump.fun / LetsBonk) and just graduated, with dev-reputation badges |
 | `/paper` | Paper-trading results (same query and test-mode filtering as the site) |
 | `/hof` | Hall of Fame |
+| `/perf [kind\|score\|source\|badge\|chain]` | Signal performance, like the site's panel: N, hit +50%, 2×, rug rate, median 1h / 24h |
 | `/alerts on\|off`, `/alerts`, `/filters` | Turn alerts on/off for this chat; show the rules and engine status |
 | `/filter <key> <value>` | Change one rule, see below |
 | `/call <CA>` | Tracked call, Solana or Base, posted with Auspex badges and scored at 24h |
@@ -36,7 +37,7 @@ In groups only admins can change alerts.
 | `liq` | `/filter liq 20k` | Min liquidity USD (launches have no liquidity yet, so they're dropped when this is set) |
 | `providers` | `/filter providers 2` | Min providers confirming the same CA |
 | `exclude` / `include` | `/filter exclude heuristic` · `rugdev` · `bad` · `none` | Flags: sanctioned, confirmed, suspected, heuristic, rugged, insiders, serial, danger. Default excludes sanctioned, confirmed, suspected, rugged, danger |
-| `hitrate` | `/filter hitrate 40` · `off` | Min historical hit rate of the coin's cohort (kind / chain / score bucket) from `auspex_signal_outcomes`. Skipped, with a note, while that table is missing or the cohort has < 10 samples |
+| `hitrate` | `/filter hitrate 40` · `off` | Min hit rate of the coin's cohort over the last 7 days. Hit means +50% before −50%, counted over resolved signals only, the same as the site's "Hit +50%". The cohort is the score band for board signals and the kind for launches and graduations. The rule is skipped, with a note, when there are no stats or the cohort has fewer than 10 resolved signals |
 | `rate` | `/filter rate 5` | Max alerts per hour for this chat (1–60) |
 | `reset` | `/filter reset` | Defaults |
 
@@ -45,6 +46,8 @@ graduation is one alert); per-chat hourly cap; Telegram pacing (~1 msg/s per cha
 rule disabled); launches older than 15 min and graduations older than 60 min are never alerted; no alerts if the worker's
 cache is more than 10 min old; turning alerts on (or changing a filter) marks current matches as seen, so there's no flood.
 Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
+
+**Signal performance.** Alerts and `/coin` show the site's "since signal" chip from the row's `signalPerf` (e.g. `+42.0% since signal · 35m`), plus checkpoints, max up and drawdown. They also show a "Similar signals" line with the cohort's hit rate. Stats come from `payload.signalPerformance`, the worker's own aggregate. If that's missing, the bot reads `auspex_signal_outcomes` (last 7 days) and aggregates it with the worker's rules. If neither exists, the hit-rate parts are left out.
 
 ## Feature parity (bot ⇄ site ⇄ worker)
 
@@ -61,7 +64,7 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 | Paper trading | ✅ | ✅ | ✅ `/paper` |
 | Hall of Fame | backfill | ✅ | ✅ `/hof` |
 | CA scanner (DexScreener + RugCheck) | – | ✅ Solana, Base | ✅ `/coin` fallback (+ GoPlus for Base) |
-| Signal performance (`auspex_signal_outcomes`) | PR in progress | PR in progress | ✅ adapter ready, `hitrate` rule, degrades gracefully |
+| Signal performance: "since signal" chip, perf table | ✅ `signalPerf`, `signalPerformance` | ✅ | ✅ alerts / `/coin` / lists, `/perf`, `hitrate` rule (payload first, table fallback) |
 | Alerts with user rules | – | ❌ | ✅ |
 | Subscriptions / payments / channel access | – | ❌ | ✅ (payment checks hardened) |
 | Caller calls, scoring, leaderboard, X verify | – | ❌ | ✅ (works for Solana now) |
@@ -82,7 +85,7 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 - `migrations/001_vigil_base.sql`: the bot's original tables (`vigil_*`, `augur_leaderboard` view).
 - `migrations/002_auspex_alerts.sql`: `auspex_bot_alert_rules` (one row per chat: `filters` jsonb) and `auspex_bot_alerts_sent` (dedup log, PK `(chat_id, coin_key)`). RLS is on and there's no anon access. If these tables are missing, the bot uses in-memory rules and logs a warning.
 - `migrations/003_lock_down_vigil_tables.sql`: removes 001's `using (true)` policies, which let anyone with the anon key read subscribers and payments and insert a free subscription. **Apply it only after the bot runs with `SUPABASE_SERVICE_KEY`.**
-- Reads, with the anon key, the same tables the site reads: `auspex_signal_cache`, `auspex_paper_trades`, `auspex_hall_of_fame`, and `auspex_signal_outcomes` once it exists.
+- Reads, with the anon key, the same tables the site reads: `auspex_signal_cache`, `auspex_paper_trades` and `auspex_hall_of_fame`. It reads `auspex_signal_outcomes` only as a fallback for stats, and for the "since signal" view of a coin whose payload row has none.
 
 ## Development
 
@@ -90,7 +93,8 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 npm install
 npm test               # unit tests (node:test)
 npm run lint           # eslint
-npm run test:parity    # runs the SITE's badge renderers (auspex-site/index.html) against the same payload; AUSPEX_SITE_HTML=...
+npm run test:parity    # site badge renderers + "since signal" chip (AUSPEX_SITE_HTML=auspex-site/index.html) and the
+                       # worker's aggregate()/sinceSignal() (AUSPEX_WORKER_SIGNAL_OUTCOMES=auspex-worker/lib/signal-outcomes.js)
 npm run e2e            # local Postgres+PostgREST and a mock Telegram API, see scripts/e2e/run.mjs
 ```
 

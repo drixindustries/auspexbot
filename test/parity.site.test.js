@@ -9,6 +9,8 @@ import vm from "node:vm";
 import { buildPayload } from "./fixtures/synthetic.js";
 import { signalItems, launchItems, graduationItems } from "../lib/normalize.js";
 import { badgesFor } from "../lib/badges.js";
+import { allItems } from "../lib/normalize.js";
+import { perfChipText } from "../lib/format.js";
 
 const HTML = process.env.AUSPEX_SITE_HTML;
 const skip = !HTML || !fs.existsSync(HTML) ? "set AUSPEX_SITE_HTML to auspex-site/index.html" : false;
@@ -27,7 +29,7 @@ function loadSite(html) {
     console, URLSearchParams,
   };
   vm.createContext(ctx);
-  const api = vm.runInContext(`(function () {${body}\n;return { renderSignalRowHTML, renderLaunchedPanel, renderGraduatedPanel };})()`, ctx);
+  const api = vm.runInContext(`(function () {${body}\n;return { renderSignalRowHTML, renderLaunchedPanel, renderGraduatedPanel, perfChipHTML: typeof perfChipHTML === "function" ? perfChipHTML : null };})()`, ctx);
   return { ctx: api, panels };
 }
 
@@ -73,4 +75,14 @@ test("launch and graduation panels: bot badges == site badges", { skip }, () => 
       compare(kind, it, html);
     }
   }
+});
+
+test("'since signal' chip text == site perfChipHTML (auspex-site feat/signal-performance)", { skip }, (t) => {
+  const { ctx } = loadSite(fs.readFileSync(HTML, "utf8"));
+  if (!ctx.perfChipHTML) return t.skip("this index.html predates signal performance");
+  const items = allItems(buildPayload(Date.now())).filter((it) => it.signalPerf);
+  assert.ok(items.length >= 4);
+  for (const it of items) assert.equal(perfChipText(it.signalPerf, Date.now()), decode(ctx.perfChipHTML(it.signalPerf)), it.symbol);
+  for (const p of [{ returnPct: 150.4, firstSeenAt: new Date(Date.now() - 3 * 86400e3).toISOString() }, { returnPct: -0.04, firstSeenAt: new Date().toISOString() }, { returnPct: null, basis: null }])
+    assert.equal(perfChipText(p, Date.now()), decode(ctx.perfChipHTML(p)));
 });

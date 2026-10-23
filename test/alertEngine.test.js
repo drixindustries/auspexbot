@@ -94,12 +94,18 @@ test("not-allowed chats (no subscription) are skipped", async () => {
   const r = await e.tick();
   assert.equal(r.suppressed[0].reason, "not_allowed");
 });
-test("hit-rate line shows when outcome stats exist", async () => {
-  const rows = Array.from({ length: 12 }, (_, i) => ({ kind: "signal", chain_id: "solana", first_seen_score: 92, return_24h_pct: i < 9 ? 40 : -10 }));
-  const { computeOutcomeStats } = await import("../lib/outcomes.js");
-  const h = harness({ outcomes: { getStats: async () => computeOutcomeStats(rows) } });
-  await h.store.saveRule(rule("1", { kinds: ["signal"], minHitRate: 60 }));
+test("hit-rate rule + 'similar signals' and 'since signal' lines from payload.signalPerformance", async () => {
+  const { statsFrom } = await import("../lib/outcomes.js");
+  const { signalPerformance } = await import("./fixtures/synthetic.js");
+  const h = harness({ outcomes: { getStats: async () => statsFrom(signalPerformance(Date.now()), "payload") } });
+  await h.store.saveRule(rule("1", { kinds: ["signal", "graduation"], minHitRate: 40, minScore: 0, exclude: [], maxPerHour: 60 }));
   const r = await h.engine.tick();
   const pp = r.sent.find((s) => s.coin === "PPUP");
-  assert.ok(pp); assert.match(pp.text, /75/);
+  assert.ok(pp, "score-92 signal (75-100 band, 46%) passes");
+  const plain = pp.text.replace(/\\(.)/g, "$1");
+  assert.match(plain, /Similar signals \(score 75-100, last 7d\): 46% hit \+50% \(12\/26 resolved\)/);
+  assert.match(plain, /\+42\.0% since signal · 35m/);
+  assert.ok(r.sent.find((s) => s.coin === "SGRAD"), "graduations cohort (60%) passes");
+  assert.ok(!r.sent.find((s) => s.coin === "THIN"), "score-70 signal (50-74 band, 20%) suppressed");
+  assert.ok(r.suppressed.some((s) => s.coin === "THIN" && /hit rate 20%/.test(s.why.join())));
 });

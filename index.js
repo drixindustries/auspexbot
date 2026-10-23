@@ -16,7 +16,7 @@ import { esc, code } from "./lib/md.js";
 import { auspexData, outcomes, lookupCoin } from "./lib/auspex.js";
 import { signalItems, launchItems, graduationItems } from "./lib/normalize.js";
 import { badgesFor } from "./lib/badges.js";
-import { formatCoinCard, formatScanCard, formatFeed, formatItemList, formatPaper, formatHallOfFame, badgeLine, siteCoinUrl, compactUsd, pct } from "./lib/format.js";
+import { formatCoinCard, formatScanCard, formatFeed, formatItemList, formatPaper, formatHallOfFame, formatPerf, badgeLine, siteCoinUrl, compactUsd, pct } from "./lib/format.js";
 import { extractAddress, scanAddress, tokenSnapshot } from "./lib/scan.js";
 import { applyFilterCommand, describeFilters, normalizeFilters, DEFAULT_FILTERS } from "./lib/rules.js";
 import { createSupabaseStore } from "./lib/alertStore.js";
@@ -131,6 +131,7 @@ const HELP = [
     ["/grads", "recent graduations"],
     ["/paper", "paper-trading results"],
     ["/hof", "Hall of Fame"],
+    ["/perf [kind|score|source|badge|chain]", "signal performance: hit rates and returns since signal"],
   ]],
   ["Alerts", [
     ["/alerts on|off", "DM / group alerts for coins matching your filters"],
@@ -194,6 +195,7 @@ async function coinCommand(ctx) {
     const main = coin.items[0];
     let hitRate = null;
     try { hitRate = hitRateFor(await outcomes.getStats(), main); } catch { /* optional */ }
+    if (!main.signalPerf) { try { main.signalPerf = await outcomes.sinceSignal(main); } catch { /* optional */ } }
     await reply(ctx, formatCoinCard(coin.items, { siteUrl: config.AUSPEX_SITE_URL, updatedAt: coin.updatedAt, hitRate }), { reply_markup: keyboard(main) });
     if (["solana", "base"].includes(main.chain)) sendChart(ctx, await tokenSnapshot(main.address, { chain: main.chain }).catch(() => null));
     return;
@@ -449,6 +451,11 @@ bot.command("launches", (ctx) => withCache(ctx, ({ payload }) =>
 bot.command("grads", (ctx) => withCache(ctx, ({ payload }) =>
   reply(ctx, formatItemList("🎓 JUST GRADUATED", graduationItems(payload), { limit: 10, empty: "No graduations in the cache yet." }))));
 
+bot.command("perf", async (ctx) => {
+  const by = (argsOf(ctx)[0] || "kind").toLowerCase();
+  try { await reply(ctx, formatPerf(await outcomes.getStats(), { by })); } catch (e) { await reply(ctx, esc(`⚠️ ${e.message}`)); }
+});
+
 bot.command("paper", async (ctx) => {
   try { await reply(ctx, formatPaper(await auspexData.getPaperTrades(30))); } catch (e) { await reply(ctx, esc(`⚠️ ${e.message}`)); }
 });
@@ -489,7 +496,7 @@ async function alertsStatusText(rule) {
   const lines = [
     `🔔 *${esc("Auspex alerts: " + (rule?.enabled ? "ON" : "OFF"))}*`, "",
     ...describeFilters(f).map((l) => esc("• " + l)), "",
-    esc(`Performance stats (auspex_signal_outcomes): ${stats.available ? (stats.empty ? "table present, no resolved outcomes yet" : `${stats.n} resolved outcomes`) : "not available yet — hit-rate filters are skipped"}`),
+    esc(`Signal performance: ${stats.available ? `${stats.counted} signals in the last ${stats.windowDays}d (${stats.source === "payload" ? "worker aggregate" : "auspex_signal_outcomes"}) — hit rate = +50% before −50%, by score band (signals) or kind (launches/grads)` : "not available yet — hit-rate filters are skipped"}`),
     esc(`One alert per coin per chat per 24h. Store: ${alertStore.kind}.`),
     esc(`Engine: ${engine.stats.sent} sent · held back: ${engine.stats.suppressed.duplicate} duplicate, ${engine.stats.suppressed.rate_limited} rate-limited${engine.stats.lastTickAt ? "" : " · not polled yet"}`), "",
     esc("Change with ") + code("/filter <key> <value>") + esc(" — see /help."),

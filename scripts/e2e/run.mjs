@@ -3,7 +3,7 @@
 //
 //   E2E_REST=http://127.0.0.1:56431            local /rest/v1 gateway in front of PostgREST
 //   E2E_SERVICE_JWT=... E2E_ANON_JWT=...       JWTs signed with the LOCAL PostgREST secret
-//   E2E_PG=postgresql://postgres@127.0.0.1:56432/auspex_unify   (for DDL: outcomes table, migration 003)
+//   E2E_PG=postgresql://postgres@127.0.0.1:56432/auspex_unify   (worker auspex-schema.sql incl. auspex_signal_outcomes + migrations 001/002)
 //   E2E_MOCK_PORT=56441
 //
 // Seeds the real worker payload (test/fixtures) + synthetic coins, drives commands as Telegram users, injects
@@ -14,6 +14,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildPayload, ADDR } from "../../test/fixtures/synthetic.js";
 import { validateMarkdownV2 } from "../../lib/md.js";
+import { outcomeRows } from "../../test/fixtures/outcomes.js";
+import { aggregateRows } from "../../lib/outcomes.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT = path.join(ROOT, ".e2e");
@@ -88,6 +90,7 @@ function startBot() {
   return bot;
 }
 const alertsTo = async (chatId, sinceIdx) => (await sent()).slice(sinceIdx).filter((c) => c.method === "sendMessage" && String(c.chat_id) === String(chatId) && /Signals, not advice/.test(c.text || "") && !!c.reply_markup);
+const plain = (c) => String(c?.text ?? c?.caption ?? "").replace(/\\(.)/g, "$1");
 const sentCount = async () => (await sent()).length;
 async function waitTicks(ms = 5000) { await sleep(ms); }
 async function cmd(text, opts = {}) {
@@ -103,7 +106,7 @@ await sleep(600);
 let bot;
 try {
   // clean slate in the LOCAL db
-  psql("truncate auspex_bot_alert_rules, auspex_bot_alerts_sent, vigil_subscribers, vigil_payments, vigil_calls, vigil_callers cascade; truncate auspex_paper_trades, auspex_hall_of_fame restart identity cascade; drop table if exists auspex_signal_outcomes;");
+  psql("truncate auspex_bot_alert_rules, auspex_bot_alerts_sent, vigil_subscribers, vigil_payments, vigil_calls, vigil_callers cascade; truncate auspex_paper_trades, auspex_hall_of_fame restart identity cascade; truncate auspex_signal_outcomes;");
   // restore 001's original (permissive) policies so the lock-down step below is reproducible on re-runs
   const T = { vigil_subscribers: "vigil_subscribers_all", vigil_payments: "vigil_payments_all", vigil_callers: "vigil_callers_all", vigil_calls: "vigil_calls_all", vigil_watched_accounts: "vigil_watched_all", vigil_following_snapshots: "vigil_snapshots_all" };
   psql(Object.entries(T).map(([t, pol]) => `drop policy if exists "${pol}" on ${t}; create policy "${pol}" on ${t} for all using (true); grant all on ${t} to anon, authenticated;`).join("\n") + " notify pgrst, 'reload schema';");
@@ -216,28 +219,58 @@ try {
   check((await alertsTo(DM, mark)).length === 0, "the burst (no dev record) is suppressed for the DM rule");
 
   // 5. performance stats (auspex_signal_outcomes) appear → hit-rate rule kicks in
-  log("\n## 5. auspex_signal_outcomes appears (other PR) → hit-rate filter");
-  psql(`create table auspex_signal_outcomes (id bigserial primary key, chain_id text, token_address text, kind text, first_seen_score numeric, return_24h_pct numeric, created_at timestamptz default now());
-        grant select on auspex_signal_outcomes to anon;
-        insert into auspex_signal_outcomes (chain_id, kind, first_seen_score, return_24h_pct)
-          select 'solana','signal', 92, case when g < 15 then 40 else -20 end from generate_series(1,20) g
-          union all select 'solana','signal', 64, case when g < 4 then 10 else -60 end from generate_series(1,15) g;
-        notify pgrst, 'reload schema';`);
-  await sleep(2500);
+  log("\n## 5. Signal performance — table fallback (payload has no signalPerformance)");
+  const status0 = await cmd("/alerts");
+  check(/: 0 signals in the last 7d \(auspex_signal_outcomes\)/.test(plain(status0[0])), "empty auspex_signal_outcomes: stats read from the table, 0 signals");
+  // seed the REAL table (worker schema) through PostgREST with the service key, the way the worker writes it
+  const orows = outcomeRows(Date.now());
+  const sg = { ...orows.find((r) => r.kind === "graduation"), id: `graduation:solana:${ADDR.safeGrad}`, token_address: ADDR.safeGrad, symbol: "SGRAD", last_return_pct: 133.3, max_up_pct: 180, checkpoints: { "5m": { returnPct: 12, late: false }, "15m": { returnPct: 64, late: false }, "1h": { returnPct: 133.3, late: false } }, status: "tracking", rugged: false, liq_collapsed: false };
+  const ins = await rest("POST", "auspex_signal_outcomes?on_conflict=id", [...orows, sg], { prefer: "resolution=merge-duplicates" });
+  check(ins.status === 201, `seeded ${orows.length + 1} rows into auspex_signal_outcomes with the final schema (HTTP ${ins.status})`);
+  await sleep(2000);
   const st = await cmd("/alerts");
-  check(/35 resolved outcomes/.test(st[0]?.text || ""), "/alerts reports outcome stats once the table exists");
+  check(/91 signals in the last 7d \(auspex_signal_outcomes\)/.test(plain(st[0])), "/alerts reports stats aggregated from the table");
+  const perfT = await cmd("/perf score");
+  check(/score 75-100\s+30\s+46% 12\/26/.test(plain(perfT[0])), "/perf score: 75-100 band 46% hit +50% (12/26) from the table");
+  const coinT = await cmd(`/coin ${ADDR.safeGrad}`);
+  check(coinT.some((c) => /\+133% since signal/.test((c.text || "").replace(/\\(.)/g, "$1"))), "/coin: 'since signal' from the table row when the payload row has none");
   mark = await sentCount();
   p = cloneP();
-  const H = { hi: fake("HiHit"), lo: fake("LoHit") };
+  const H = { hi: fake("HiHit"), lo: fake("LoHit"), mid: fake("MidHit") };
   addSignal(p, { addr: H.hi, sym: "HIHIT", score: 93, liq: 70_000, good: proven });
   addSignal(p, { addr: H.lo, sym: "LOHIT", score: 64, liq: 70_000, good: proven });
+  p.chainGroups.solana[1].signalPerf = { kind: "top_signal", firstSeenAt: new Date(Date.now() - 6 * 60_000).toISOString(), basis: "price", entryMcapUsd: 490_000, entryPriceUsd: 0.0012, returnPct: 18.4, lastAt: now(), maxUpPct: 22.1, maxDrawdownPct: -3.5, checkpoints: { "5m": 18.4 }, rugged: false, liqCollapsed: false, status: "tracking" };
+  await cmd("/filter hitrate 40");
+  mark = await sentCount();
   await writeCache(p);
   await waitTicks(6000);
-  const hr = await alertsTo(DM, mark);
-  const hrs = hr.map((c) => (c.text.match(/\$([A-Z0-9]+)/) || [])[1]);
+  let hr = await alertsTo(DM, mark);
+  let hrs = hr.map((c) => (c.text.match(/\$([A-Z0-9]+)/) || [])[1]);
   for (const c of hr) log("\n--- alert ---\n" + c.text);
-  check(hrs.includes("HIHIT") && !hrs.includes("LOHIT"), "hit-rate rule: 70% cohort alerted, 20% cohort suppressed");
-  check(hr.some((c) => /hit rate/i.test(c.text)), "alert shows the cohort hit rate");
+  check(hrs.includes("HIHIT") && !hrs.includes("LOHIT"), "hit-rate 40%: score-93 coin (75-100 band, 46%) alerted; score-64 coin (50-74 band, 20%) suppressed");
+  const hiText = (hr.find((c) => /HIHIT/.test(c.text))?.text || "").replace(/\\(.)/g, "$1");
+  check(/Similar signals \(score 75-100, last 7d\): 46% hit \+50% \(12\/26 resolved\)/.test(hiText), "alert shows the real cohort stats (hit +50%, resolved)");
+  check(/\+18\.4% since signal · 6m/.test(hiText), "alert shows 'since signal' from the row's signalPerf");
+
+  log("\n## 5b. Signal performance — payload.signalPerformance preferred over the table");
+  const agg = aggregateRows(orows, { now: Date.now() });
+  const band = agg.rows.find((r) => r.dim === "scoreBand" && r.value === "50-74");
+  band.hit50 = { hits: 11, decided: 20, ratePct: 55 }; // the worker's numbers differ from the table → proves which one is used
+  p = cloneP();
+  p.signalPerformance = { ...agg, windowDays: 7, tracking: 4, inMemory: 91 };
+  addSignal(p, { addr: H.mid, sym: "MIDHIT", score: 65, liq: 70_000, good: proven });
+  mark = await sentCount();
+  await writeCache(p);
+  await waitTicks(6000);
+  hr = await alertsTo(DM, mark);
+  hrs = hr.map((c) => (c.text.match(/\$([A-Z0-9]+)/) || [])[1]);
+  for (const c of hr) log("\n--- alert ---\n" + c.text);
+  check(hrs.includes("MIDHIT"), "with the worker aggregate (50-74 band = 55%) the score-65 coin passes the 40% rule");
+  check(/55% hit \+50% \(11\/20 resolved\)/.test((hr[0]?.text || "").replace(/\\(.)/g, "$1")), "alert line uses payload.signalPerformance");
+  await sleep(21_000); // command-side cache TTL
+  const perfP = await cmd("/perf kind");
+  check(/worker's aggregate/.test((perfP[0]?.text || "").replace(/\\(.)/g, "$1")), "/perf reads payload.signalPerformance when present");
+  await cmd("/feed");
 
   // 6. migration 003: anon can no longer write the bot's tables; the bot (service key) still works
   log("\n## 6. Lock-down migration (003)");

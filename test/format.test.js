@@ -25,3 +25,29 @@ test("alert carries verdict, badges and site link", () => {
   assert.match(t, /RUG DEV/); assert.match(t, /~⭐ PROMISING DEV · 1 winner~/);
   assert.equal(siteCoinUrl("https://a.b/", { chain: "base", address: "0xAbC" }), "https://a.b/?chain=base&ca=0xAbC");
 });
+
+import { perfChipText, formatPerf, hitRateLine } from "../lib/format.js";
+import { statsFrom, hitRateFor } from "../lib/outcomes.js";
+
+
+test("since-signal chip text (site perfChipHTML rules)", () => {
+  const at = new Date(NOW - 35 * 60_000).toISOString();
+  assert.equal(perfChipText({ returnPct: 42, firstSeenAt: at }, NOW), "+42.0% since signal · 35m");
+  assert.equal(perfChipText({ returnPct: -150.4, rugged: true, firstSeenAt: at }, NOW), "☠ -150% since signal · 35m");
+  assert.equal(perfChipText({ returnPct: null, basis: "mcap" }, NOW), "⏱ pricing…");
+  assert.equal(perfChipText({ returnPct: null, basis: null }, NOW), "⏱ awaiting first price…");
+  assert.equal(perfChipText(null), null);
+});
+test("alerts, coin cards, lists and /perf carry signal performance and stay valid MarkdownV2", () => {
+  const pp = buildPayload(NOW, undefined, { perf: true });
+  const stats = statsFrom(pp.signalPerformance, "payload");
+  for (const it of allItems(pp)) ok(formatAlert(it, { siteUrl: "https://a.b", now: NOW, hitRate: hitRateFor(stats, it) }));
+  const card = formatCoinCard(findCoin(pp, ADDR.ruggedGrad), { siteUrl: "https://a.b", now: NOW, hitRate: hitRateFor(stats, findCoin(pp, ADDR.ruggedGrad)[0]) });
+  ok(card); assert.match(card.replace(/\\(.)/g, "$1"), /☠ -97.0% since signal · 6m/); assert.match(card, /Pool liquidity collapsed/); assert.match(card.replace(/\\(.)/g, "$1"), /graduations, last 7d\): 60% hit \+50%/);
+  ok(formatFeed(pp, { now: NOW })); assert.match(formatFeed(pp, { now: NOW }), /since signal/);
+  ok(formatItemList("L", allItems(pp).filter((i) => i.kind === "launch"), { now: NOW }));
+  for (const by of ["kind", "score", "source", "badge", "chain", "bogus"]) ok(formatPerf(stats, { by }));
+  assert.match(formatPerf(stats, { by: "score" }), /score 75-100\s+30\s+46% 12\/26/);
+  ok(formatPerf({ available: false }));
+  ok(hitRateLine({ label: "launches", ratePct: null, n: 2, trusted: false, windowDays: 7 }));
+});
