@@ -25,7 +25,7 @@ test("filter command parsing and aliases", () => {
   assert.ok(applyFilterCommand(f, "bogus", "1").error);
   assert.ok(applyFilterCommand(f, "chains", "eth").error);
   assert.deepEqual(applyFilterCommand(f, "reset").filters, normalizeFilters({}));
-  assert.equal(describeFilters(f).length, 10);
+  assert.equal(describeFilters(f).length, 15);
 });
 test("defaults exclude hard flags but not heuristic", () => {
   assert.equal(evaluate(get(ADDR.provenSignal), DEFAULT_FILTERS).pass, true);

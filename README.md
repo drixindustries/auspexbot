@@ -13,6 +13,7 @@ autopost, charts, and the smart-call and X-follow watchers.
 | `/feed [solana\|base]` | Top signals from the Auspex cache with the site's badges |
 | `/coin <CA>` (alias `/check`) | Full Auspex card for any coin on the board (signal / launch / graduation). Off-board CAs fall back to a live DexScreener + RugCheck (Solana) / GoPlus (Base) scan, like the site's CA scanner |
 | `/launches`, `/grads` | Just launched (pump.fun / LetsBonk) and just graduated, with dev-reputation badges |
+| `/early` | Bonding-curve scanner (worker `lib/early-track.js`): EARLY SIGNAL and FINAL STRETCH cards with the site's numbers and badges, the about-to-graduate list, and early-curve paper stats (win rate, 2×, 3×/10×/$100k, median peak / exit, fill rate) |
 | `/paper` | Paper-trading results (same query and test-mode filtering as the site) |
 | `/hof` | Hall of Fame |
 | `/perf [kind\|score\|source\|badge\|chain]` | Signal performance, like the site's panel: N, hit +50%, 2×, rug rate, median 1h / 24h |
@@ -31,7 +32,14 @@ In groups only admins can change alerts.
 |---|---|---|
 | `score` | `/filter score 70` | Min Auspex score (signals) |
 | `chains` | `/filter chains solana` · `all` | Chains |
-| `kinds` | `/filter kinds graduations` · `all` | signal / launch / graduation (default: signal, graduation) |
+| `kinds` | `/filter kinds early,graduations` · `all` | signal / launch / graduation / early (default: signal, graduation, early). Graduations the worker marks `signalEligible: false` (every graduation instant, kept as an outcome control) are never alerted |
+| `arms` | `/filter arms early` · `stretch` · `all` | Early arms: EARLY SIGNAL ($4k–$15k window) and/or FINAL STRETCH (60–85% of the curve) |
+| `early_score` | `/filter early_score 65` | Min early score (the worker already requires `EARLY_MIN_SCORE`) |
+| `mcap` | `/filter mcap 4k-10k` · `5k` · `off` | Market-cap range at the signal (early only) |
+| `bundle` / `sniper` / `top10` | `/filter bundle 3` · `off` | Max % of supply: launch bundle (creator + same-slot buyers), first-3-slot snipers, top-10 holders. Unknown counts as failing |
+| `buyers` | `/filter buyers 25` | Min unique buyers per minute |
+| `first10` | `/filter first10 7` | Min of the first 10 buyers still holding |
+| `smart` | `/filter smart on` | Require a smart-money wallet among the buyers (confirmation only) |
 | `dev` | `/filter dev proven` · `promising` · `off` | Require a proven (or at least promising) dev. A good dev who is also on a bad list never passes (site rule: bad wins) |
 | `rugsafe` | `/filter rugsafe on` | Require RugCheck tier SAFE |
 | `liq` | `/filter liq 20k` | Min liquidity USD (launches have no liquidity yet, so they're dropped when this is set) |
@@ -43,7 +51,8 @@ In groups only admins can change alerts.
 
 Delivery rules: one alert per coin per chat per 24h (persisted, so restarts don't re-alert; a coin that's both a signal and a
 graduation is one alert); per-chat hourly cap; Telegram pacing (~1 msg/s per chat, 25/s global; 429 → pause, 403 →
-rule disabled); launches older than 15 min and graduations older than 60 min are never alerted; no alerts if the worker's
+rule disabled); launches older than 15 min, early signals older than 10 min and graduations older than 60 min are never
+alerted; an early card with a hard negative (dev sold, cohort sell-down, flagged creator, brand name, rugged) never alerts; no alerts if the worker's
 cache is more than 10 min old; turning alerts on (or changing a filter) marks current matches as seen, so there's no flood.
 Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 
@@ -62,6 +71,8 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 | Just graduated (venue, launchpad) | ✅ | ✅ | ✅ `/grads` |
 | Market regime / active metas | ✅ | ✅ | ✅ in `/feed` |
 | Paper trading | ✅ | ✅ | ✅ `/paper` |
+| Early scanner (New / Early Signal / Final Stretch / Graduated, curve metrics, first-10, bundle launch→now, funding, deployer, flow) | ✅ `earlyScanner` | ✅ | ✅ `/early`, EARLY SIGNAL alerts, early rules; badges parity-tested against `earlyCardHTML` |
+| Early-curve paper (exit ladder, 2×/3×/10×/$100k, sustained $100k, fill rate) | ✅ `earlyPaper` | ✅ | ✅ in `/early` |
 | Hall of Fame | backfill | ✅ | ✅ `/hof` |
 | CA scanner (DexScreener + RugCheck) | – | ✅ Solana, Base | ✅ `/coin` fallback (+ GoPlus for Base) |
 | Signal performance: "since signal" chip, perf table | ✅ `signalPerf`, `signalPerformance` | ✅ | ✅ alerts / `/coin` / lists, `/perf`, `hitrate` rule (payload first, table fallback) |
