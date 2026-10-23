@@ -1,17 +1,21 @@
 /**
  * Vigil Caller Ranking System
  *
- * Members make calls with /call 0x...
+ * Members make calls with /call <CA> (Solana or Base)
  * Calls are scored at 24h against entry price.
  * Composite score determines rank.
  * Top 30 callers become elite — their calls are forwarded to the elite channel.
  */
 
 import { supabase } from "./db.js";
-import { fetchTokenData } from "./gecko.js";
+import { tokenSnapshot } from "./lib/scan.js";
 import { getSmartStats, elfaAvailable } from "./elfaClient.js";
 import cron from "node-cron";
-import { config } from "./config.js";
+
+/** Solana addresses are case-sensitive; only EVM addresses are lower-cased. */
+export function normalizeCallAddress(addr) {
+  return /^0x[0-9a-fA-F]{40}$/.test(addr) ? addr.toLowerCase() : addr;
+}
 
 // ── Rate limiting ─────────────────────────────────────────────────────────
 
@@ -37,7 +41,7 @@ export async function isDuplicateCall(telegramId, tokenAddress) {
     .from("vigil_calls")
     .select("id")
     .eq("telegram_id", String(telegramId))
-    .eq("token_address", tokenAddress.toLowerCase())
+    .eq("token_address", normalizeCallAddress(tokenAddress))
     .gte("called_at", cutoff)
     .limit(1);
   return data && data.length > 0;
@@ -85,7 +89,7 @@ export async function recordCall({ telegramId, telegramUsername, tokenAddress, t
     .from("vigil_calls")
     .insert({
       telegram_id:    String(telegramId),
-      token_address:  tokenAddress.toLowerCase(),
+      token_address:  normalizeCallAddress(tokenAddress),
       token_name:     tokenName,
       token_symbol:   tokenSymbol,
       price_at_call:  priceAtCall,
@@ -197,7 +201,7 @@ export async function scoreMaturedCalls(bot = null) {
 
   const { data: calls, error } = await supabase
     .from("vigil_calls")
-    .select("id, telegram_id, token_address, price_at_call, called_at")
+    .select("id, telegram_id, token_address, token_name, token_symbol, price_at_call, called_at")
     .is("scored_at", null)
     .lte("called_at", cutoff);
 
@@ -208,8 +212,9 @@ export async function scoreMaturedCalls(bot = null) {
   for (const call of calls) {
     try {
       // Fetch current price
-      const token = await fetchTokenData(call.token_address);
-      const currentPrice = token.priceRaw;
+      // chain-agnostic (DexScreener) — the old GeckoTerminal lookup only knew Base
+      const token = await tokenSnapshot(call.token_address);
+      const currentPrice = token?.priceRaw;
 
       if (!currentPrice || currentPrice <= 0) continue;
 
@@ -354,7 +359,8 @@ export async function recalculateRankings() {
       scored_calls:        scoredCalls.length,
       wins,
       avg_return:          Math.round(avgReturn * 10) / 10,
-      smart_follower_factor: smartFollowerFactor,
+      // (smart_follower_factor used to be sent here, but vigil_callers has no such column, so every
+      //  rankings upsert failed and the leaderboard stayed empty)
       updated_at:          new Date().toISOString(),
     });
   }

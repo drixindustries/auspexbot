@@ -1,0 +1,1658 @@
+{
+"rawCg": [
+{
+"url": "https://www.coingecko.com/en/coins/universal-high-income-2",
+"icon": "https://coin-images.coingecko.com/coins/images/102179637/standard/logo.jpg?1792416691",
+"name": "Universal High Income",
+"rank": 528,
+"coinId": "universal-high-income-2",
+"source": "CG",
+"symbol": "UHI",
+"cgIndex": 0,
+"chainId": null,
+"priceUsd": 0.04023414478756001,
+"change24h": 104.7129003894224,
+"volume24h": null,
+"tokenAddress": null
+},
+{
+"url": "https://www.coingecko.com/en/coins/irys",
+"icon": "https://coin-images.coingecko.com/coins/images/70808/standard/irys.png?1764757341",
+"name": "Irys",
+"rank": 162,
+"coinId": "irys",
+"source": "CG",
+"symbol": "IRYS",
+"cgIndex": 1,
+"chainId": "ethereum",
+"priceUsd": 0.12128209612874497,
+"change24h": 484.41300354186615,
+"volume24h": null,
+"tokenAddress": "0x50f41f589afaca2ef41fdf590fe7b90cd26dee64"
+},
+{
+"url": "https://www.coingecko.com/en/coins/dacity-coin-3",
+"icon": "https://coin-images.coingecko.com/coins/images/102179652/standard/logo.webp?1792510837",
+"name": "Dacity Coin",
+"rank": 844,
+"coinId": "dacity-coin-3",
+"source": "CG",
+"symbol": "DACITY",
+"cgIndex": 2,
+"chainId": "ethereum",
+"priceUsd": 0.01966518903321178,
+"change24h": 33.558638195239695,
+"volume24h": null,
+"tokenAddress": "0x54ce4b27caabba24926865f035d432dbde2901f7"
+}
+],
+"rawDex": [
+{
+"url": "https://dexscreener.com/solana/6lggcwcuhdvcipzntqwrb4mrtspygngbux1df7lypump",
+"icon": "https://cdn.dexscreener.com/cms/images/J-2uZuPndIwGa5Up?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "King Odie",
+"source": "DEX",
+"symbol": "ODIE",
+"chainId": "solana",
+"mcapUsd": 3006183,
+"change1h": 15.78,
+"priceUsd": "0.003024",
+"change24h": 5171,
+"volume24h": 5240715.73,
+"boostAmount": null,
+"liquidityUsd": 164760.1,
+"marketCapUsd": 3006183,
+"tokenAddress": "6LGGCwCUHDvcipZNtqWrb4MRtsPygNGbUx1df7LYpump",
+"pairCreatedAt": 1792760440000
+},
+{
+"url": "https://dexscreener.com/solana/2jsj9dzlqwai3q1dhyjcpf5gveg81hbtry8eem3fpump",
+"icon": "https://cdn.dexscreener.com/cms/images/8s0jPbKoZUc3nI1a?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Arctis",
+"source": "DEX",
+"symbol": "ARCTIS",
+"chainId": "solana",
+"mcapUsd": 71632,
+"change1h": -11.83,
+"priceUsd": "0.00007456",
+"change24h": 67.3,
+"volume24h": 202024.65,
+"boostAmount": null,
+"liquidityUsd": 21917.11,
+"marketCapUsd": 71632,
+"tokenAddress": "2JSj9dzLQwAi3q1dHYjCPF5Gveg81hBTRy8EeM3Fpump",
+"pairCreatedAt": 1792749873000
+},
+{
+"url": "https://dexscreener.com/solana/hfwddm3mlb8qjw9jtrkv7sybmu5fdx3lrqwa2d9rpump",
+"icon": "https://cdn.dexscreener.com/cms/images/F8kguAFPws29hUq5?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "CYBERCAT",
+"source": "DEX",
+"symbol": "CYBERCAT",
+"chainId": "solana",
+"mcapUsd": 9418,
+"change1h": 0.88,
+"priceUsd": "0.000009607",
+"change24h": -89.44,
+"volume24h": 380617.62,
+"boostAmount": null,
+"liquidityUsd": 6989.97,
+"marketCapUsd": 9418,
+"tokenAddress": "HfWDdM3mLB8Qjw9jTRKV7sYBmu5FdX3LrQWa2d9rpump",
+"pairCreatedAt": 1792692956000
+}
+],
+"kolBuys": {},
+"unmapped": [
+{
+"url": "https://www.coingecko.com/en/coins/universal-high-income-2",
+"icon": "https://coin-images.coingecko.com/coins/images/102179637/standard/logo.jpg?1792416691",
+"name": "Universal High Income",
+"rank": 528,
+"score": 30,
+"coinId": "universal-high-income-2",
+"source": "CG",
+"symbol": "UHI",
+"cgIndex": 0,
+"chainId": null,
+"sources": [
+"CG"
+],
+"priceUsd": 0.04023414478756001,
+"change24h": 104.7129003894224,
+"volume24h": null,
+"tokenAddress": null
+},
+{
+"url": "https://www.coingecko.com/en/coins/pepe",
+"icon": "https://coin-images.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776",
+"name": "Pepe",
+"rank": 52,
+"score": 14,
+"coinId": "pepe",
+"source": "CG",
+"symbol": "PEPE",
+"cgIndex": 5,
+"chainId": null,
+"sources": [
+"CG"
+],
+"priceUsd": 4.7709641510124774e-06,
+"change24h": 8.931073856132937,
+"volume24h": null,
+"tokenAddress": null
+},
+{
+"url": "https://www.coingecko.com/en/coins/pearl-2",
+"icon": "https://coin-images.coingecko.com/coins/images/102173580/standard/pearl.png?1780324634",
+"name": "Pearl",
+"rank": 89,
+"score": 12,
+"coinId": "pearl-2",
+"source": "CG",
+"symbol": "PEARL",
+"cgIndex": 4,
+"chainId": null,
+"sources": [
+"CG"
+],
+"priceUsd": 2.0371369837677866,
+"change24h": -5.537434974981585,
+"volume24h": null,
+"tokenAddress": null
+}
+],
+"rugSafety": {
+"THg8NJDZh1fnDnWhrWxnhPJi4ktJ4FTsVf2Ev91pump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "FCb8eueSQFgSnebJUiBca9393U11QjWsAC8Fne5e5F1m",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 8498,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 1,
+"insidersDetected": 4,
+"knownAccountsCount": 9,
+"insiderNetworkLargest": 4
+},
+"checkedAt": "2026-10-23T18:20:36.898Z",
+"riskScore": 1
+},
+"6G2ETAjPYnkUJ24B6Tz9bWj7jk78L6V76sy9XMbNpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "AxmqzFZy8dUTWu2Vw5amzLjFZr7FxGfCgjpMB7nLXmb9",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 3,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 4,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:37.353Z",
+"riskScore": 1
+},
+"6LGGCwCUHDvcipZNtqWrb4MRtsPygNGbUx1df7LYpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "Eoxb3mTQVTbNAuUT6fNZVnHvF3EoyRsQ2AT4ibSFrr1X",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 162384,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 7,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:36.701Z",
+"riskScore": 1
+},
+"8idEA8QovsZJka6d9Z35fejE5MbL37BJxvw5k5r6pump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "EM4sZLZEomWQfsRgszDziM5KBtHAiQvhvwDwhF1ziYAU",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 221153,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 10,
+"insidersDetected": 117,
+"knownAccountsCount": 34,
+"insiderNetworkLargest": 33
+},
+"checkedAt": "2026-10-23T18:20:37.262Z",
+"riskScore": 1
+},
+"AA2nJmRcNFzeLDWXkS4VJ9yNFqybtdS8VCZmYyzjpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "GpbPzgk6M1CJq8a1F3SDooteB7nXJLw6nSaty4fUHq8R",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 7539,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 4,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:37.171Z",
+"riskScore": 1
+},
+"AFYC4gSWuRZysQQ7q3Kn9qJEHyjmAegF4KThbAjKpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "BmyswrNBLcwPcexrNZEYKd6G4NGCzVTKs6NmrMCzaZJg",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 58941,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 7,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:37.080Z",
+"riskScore": 1
+},
+"Cy7qKnoNQEsUUafCvSYWroqrHD4vu7jrCoeurXyxpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "8FSYEfW6dDHYJTKYqBhascpVXxCB5HvKQcTu3an7y4EF",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 87662,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 7,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:36.991Z",
+"riskScore": 1
+},
+"E8YeG61gTkBADYtnPcobeyMe6iBwbx5MkUGyNyhxpump": {
+"tier": "safe",
+"risks": [],
+"insights": {
+"rugged": false,
+"creator": "Gnk2soWXpTCv6zyhFEFLg9WVNUJL49dhXrJMrX79JAD8",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 64851,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 7,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:20:36.799Z",
+"riskScore": 1
+}
+},
+"activeMetas": [],
+"chainGroups": {
+"base": [
+{
+"url": "https://www.geckoterminal.com/base/pools/0xd5deec47fb6228d981ce1075efbd5b7a35fba6c89a15830abc8f245db292294b",
+"icon": null,
+"name": "NODF / WETH 0.3%",
+"score": 91,
+"source": "GTNEW",
+"symbol": "NODF",
+"chainId": "base",
+"sources": [
+"GTNEW"
+],
+"change1h": 6646122.687,
+"priceUsd": "1.97239909815587",
+"change24h": 6646122.687,
+"volume24h": 1275781.4886188,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 716737.6973,
+"marketCapUsd": "19729237096.0",
+"tokenAddress": "0xe6269868c842f7f321e5a5c0f38207411d572bfa",
+"poolCreatedAt": "2026-10-23T17:50:21Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 19724646836,
+"firstSeenPriceUsd": 1.98504561599126
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x76de5ca35b4c7d10be9662c6f4018908dd46be7ed600a34bbc0ae9f9a4f06e9b",
+"icon": null,
+"name": "WWR / WETH 0.3%",
+"score": 83,
+"source": "GTNEW",
+"symbol": "WWR",
+"chainId": "base",
+"sources": [
+"GTNEW"
+],
+"change1h": 66407.626,
+"priceUsd": "0.00493057911363114",
+"change24h": 66407.626,
+"volume24h": 25928.9843935426,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 49830.9747,
+"marketCapUsd": "49305791.14",
+"tokenAddress": "0x61eb3d45a439efb7f3a49ffdff85e24fc9c5ff1b",
+"poolCreatedAt": "2026-10-23T18:07:47Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 49308993.36,
+"firstSeenPriceUsd": 0.00496085977195074
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x86b5696b1647f21b81899ae8c25f7dc762b6e057b5600ad688e7439f49e55e00",
+"icon": null,
+"name": "RED / ETH 0.01%",
+"score": 82,
+"source": "GTNEW",
+"symbol": "RED",
+"chainId": "base",
+"sources": [
+"GTNEW"
+],
+"change1h": 655.664,
+"priceUsd": "0.0000156317722665337",
+"change24h": 655.664,
+"volume24h": 18149.7981737707,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 12297.9897,
+"marketCapUsd": "18355.08917",
+"tokenAddress": "0xb200000000000000000000d949b36da3982e7c67",
+"poolCreatedAt": "2026-10-23T17:58:11Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 20510.45803,
+"firstSeenPriceUsd": 2.25429057704464e-05
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x36c9a644268a624a5ea70c29c3d40db5876c21ee405c8b0b648821150665561b",
+"icon": null,
+"name": "McRib / ETH 0.01%",
+"score": 82,
+"source": "GTNEW",
+"symbol": "McRib",
+"chainId": "base",
+"sources": [
+"GTNEW"
+],
+"change1h": 569.198,
+"priceUsd": "0.0000162644161584853",
+"change24h": 569.198,
+"volume24h": 24847.8959107616,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 10091.8398,
+"marketCapUsd": "16264.41616",
+"tokenAddress": "0xb200000000000000000000ece17a4db1c69f867d",
+"poolCreatedAt": "2026-10-23T17:49:09Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 16264.41616,
+"firstSeenPriceUsd": 1.62644161584853e-05
+},
+{
+"url": "https://www.coingecko.com/en/coins/aerodrome-finance",
+"icon": "https://coin-images.coingecko.com/coins/images/31745/standard/token.png?1696530564",
+"name": "Aerodrome Finance",
+"rank": 97,
+"score": 67,
+"coinId": "aerodrome-finance",
+"source": "CG",
+"symbol": "AERO",
+"cgIndex": 6,
+"chainId": "base",
+"sources": [
+"CG",
+"GT"
+],
+"change1h": 0.342,
+"priceUsd": 0.7667936590123579,
+"change24h": -3.813684303130692,
+"volume24h": 1352555.33642805,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 10647728.7822,
+"marketCapUsd": "653972980.524415",
+"tokenAddress": "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+"poolCreatedAt": "2023-09-07T22:50:55Z",
+"providerCount": 2,
+"firstSeenMcapUsd": 653972980.524415,
+"firstSeenPriceUsd": 0.765632671441017
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x1cf650d4ae1e82396cea7da00acd706a1b1dab48",
+"icon": null,
+"name": "MERCURY / WETH",
+"score": 42,
+"source": "GTNEW",
+"symbol": "MERCURY",
+"chainId": "base",
+"sources": [
+"GTNEW"
+],
+"change1h": 10.471,
+"priceUsd": "0.00000537952845773706",
+"change24h": 10.471,
+"volume24h": 1885.0185250681,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 75987.0013,
+"marketCapUsd": "39930.55623",
+"tokenAddress": "0x69b09c34182dee13d9fa4179b1af9407d9e973e7",
+"poolCreatedAt": "2026-10-23T18:11:31Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 39453.36912,
+"firstSeenPriceUsd": 5.32407416424109e-06
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0xc19d91d99afc0332e5013a569c9721cd9ecb51a14c851f7a189a140950a627fa",
+"icon": null,
+"name": "AXIS / USDC 0.01%",
+"score": 36,
+"source": "GT",
+"symbol": "AXIS",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": 3.76,
+"priceUsd": "0.26180010002129",
+"change24h": -8.605,
+"volume24h": 13820905.0046344,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 2475965.6212,
+"marketCapUsd": "43197016.5",
+"tokenAddress": "0x5be75e3b0aff5d1a042a5363ae36acb1d6d755ea",
+"poolCreatedAt": "2026-10-19T06:19:05Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 43238525.253,
+"firstSeenPriceUsd": 0.262051668232549
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x2df380544b88adb3ad0a94100dcc45fd705aae2d",
+"icon": null,
+"name": "xdp / USDC 0.01%",
+"score": 35,
+"source": "GT",
+"symbol": "xdp",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": 0.183,
+"priceUsd": "0.0182431908319819",
+"change24h": -0.348,
+"volume24h": 57384866.8134893,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 1787947.7164,
+"marketCapUsd": "18247511.24",
+"tokenAddress": "0x07b3d902783c3c12b077508c3b5c00113d1291d0",
+"poolCreatedAt": "2026-09-28T12:52:05Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 18254576.1,
+"firstSeenPriceUsd": 0.0182495926717118
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0xc85d5cb72d1aad6f152a8decad228ae4a59ac9b3",
+"icon": null,
+"name": "AERO / WETH 0.084%",
+"score": 33,
+"source": "GT",
+"symbol": "AERO",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": 1.091,
+"priceUsd": "0.765993011811337",
+"change24h": -3.717,
+"volume24h": 6428028.45234744,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 2349799.9935,
+"marketCapUsd": "1629679901.36285",
+"tokenAddress": "0x3f5bf3edac59d650d8fdf9657a71f2f904a3a4ee",
+"poolCreatedAt": "2026-10-22T02:50:55Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 1628379786.61764,
+"firstSeenPriceUsd": 0.765476650426922
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x01784ef301d79e4b2df3a21ad9a536d4cf09a5ce",
+"icon": null,
+"name": "VVV / WETH",
+"score": 30,
+"source": "GT",
+"symbol": "VVV",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": -0.69,
+"priceUsd": "25.5111597695904",
+"change24h": -1.201,
+"volume24h": 787812.552627883,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 12685245.1399,
+"marketCapUsd": "1239457154.25571",
+"tokenAddress": "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf",
+"poolCreatedAt": "2025-01-27T16:44:59Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 1238762772.20941,
+"firstSeenPriceUsd": 25.4967211766518
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x5116773e18a9c7bb03ebb961b38678e45e238923",
+"icon": null,
+"name": "DRB / WETH 1%",
+"score": 29,
+"source": "GT",
+"symbol": "DRB",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": 0.176,
+"priceUsd": "0.000143406161217587",
+"change24h": 1.384,
+"volume24h": 141061.440252692,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 1273841.3175,
+"marketCapUsd": "14340616.12",
+"tokenAddress": "0x3ec2156d4c0a9cbdab4a016633b7bcf6a8d68ea2",
+"poolCreatedAt": "2025-03-07T09:58:57Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 14324945.59,
+"firstSeenPriceUsd": 0.00014324945594996
+},
+{
+"url": "https://www.geckoterminal.com/base/pools/0x0c3b466104545efa096b8f944c1e524e1d0d4888",
+"icon": null,
+"name": "TIBBIR / VIRTUAL",
+"score": 28,
+"source": "GT",
+"symbol": "TIBBIR",
+"chainId": "base",
+"sources": [
+"GT"
+],
+"change1h": -0.64,
+"priceUsd": "0.232541137913376",
+"change24h": -0.429,
+"volume24h": 122660.135258898,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 3204605.2593,
+"marketCapUsd": "219432851.50196",
+"tokenAddress": "0xa4a2e2ca3fbfe21aed83471d28b6f65a233c6e00",
+"poolCreatedAt": "2025-01-12T00:30:03Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 219432851.50196,
+"firstSeenPriceUsd": 0.232541137913376
+}
+],
+"solana": [
+{
+"url": "https://dexscreener.com/solana/6lggcwcuhdvcipzntqwrb4mrtspygngbux1df7lypump",
+"icon": "https://cdn.dexscreener.com/cms/images/J-2uZuPndIwGa5Up?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "King Odie",
+"score": 100,
+"source": "DEX",
+"symbol": "ODIE",
+"chainId": "solana",
+"mcapUsd": 3006183,
+"sources": [
+"DEX",
+"GT"
+],
+"change1h": 15.78,
+"priceUsd": "0.003024",
+"change24h": 5171,
+"volume24h": 5240715.73,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 164760.1,
+"marketCapUsd": 3006183,
+"tokenAddress": "6LGGCwCUHDvcipZNtqWrb4MRtsPygNGbUx1df7LYpump",
+"pairCreatedAt": 1792760440000,
+"poolCreatedAt": "2026-10-23T13:00:40Z",
+"providerCount": 2,
+"firstSeenMcapUsd": 3020204,
+"firstSeenPriceUsd": 0.003038
+},
+{
+"url": "https://dexscreener.com/solana/e8yeg61gtkbadytnpcobeyme6ibwbx5mkugynyhxpump",
+"icon": "https://cdn.dexscreener.com/cms/images/Mk7sn0aOEUob-YQa?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Cyber Inu",
+"score": 94,
+"source": "DEXBOOST",
+"symbol": "CI",
+"chainId": "solana",
+"mcapUsd": 514856,
+"sources": [
+"DEXBOOST",
+"DEXPROFILE"
+],
+"change1h": 782,
+"priceUsd": "0.0005148",
+"change24h": 782,
+"volume24h": 868574.88,
+"boostAmount": 30,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 61665.78,
+"marketCapUsd": 514856,
+"tokenAddress": "E8YeG61gTkBADYtnPcobeyMe6iBwbx5MkUGyNyhxpump",
+"pairCreatedAt": 1792778167000,
+"providerCount": 1,
+"firstSeenMcapUsd": 568534,
+"firstSeenPriceUsd": 0.0005685
+},
+{
+"url": "https://dexscreener.com/solana/thg8njdzh1fndnwhrwxnhpji4ktj4ftsvf2ev91pump",
+"icon": "https://cdn.dexscreener.com/cms/images/3odw7uoznDZZNix2?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Sequence",
+"score": 83,
+"source": "DEXPROFILE",
+"symbol": "SEQUENCE",
+"chainId": "solana",
+"mcapUsd": 26283.52,
+"sources": [
+"DEXPROFILE"
+],
+"change1h": 719,
+"priceUsd": "0.00002628",
+"change24h": 719,
+"volume24h": 126399.82,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": null,
+"marketCapUsd": 26283.52,
+"tokenAddress": "THg8NJDZh1fnDnWhrWxnhPJi4ktJ4FTsVf2Ev91pump",
+"pairCreatedAt": 1792777805000,
+"providerCount": 1,
+"firstSeenMcapUsd": 36438.06,
+"firstSeenPriceUsd": 3.643e-05
+},
+{
+"url": "https://dexscreener.com/solana/cy7qknonqesuuafcvsywroqrhd4vu7jrcoeurxyxpump",
+"icon": "https://cdn.dexscreener.com/cms/images/cnRZGZLrraknfIQr?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "The McNugget Indicator",
+"score": 82,
+"source": "DEX",
+"symbol": "McNugget",
+"chainId": "solana",
+"mcapUsd": 968476,
+"sources": [
+"DEX"
+],
+"change1h": 79.91,
+"priceUsd": "0.0009755",
+"change24h": 2031,
+"volume24h": 1097163.21,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 86243.49,
+"marketCapUsd": 968476,
+"tokenAddress": "Cy7qKnoNQEsUUafCvSYWroqrHD4vu7jrCoeurXyxpump",
+"pairCreatedAt": 1792756435000,
+"providerCount": 1,
+"firstSeenMcapUsd": 989320,
+"firstSeenPriceUsd": 0.0009965
+},
+{
+"url": "https://dexscreener.com/solana/afyc4gswurzysqq7q3kn9qjehyjmaegf4kthbajkpump",
+"icon": "https://cdn.dexscreener.com/cms/images/7SZCR2znXZepr_EG?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "The McRib Inu",
+"score": 82,
+"source": "DEXBOOST",
+"symbol": "MCRIBINU",
+"chainId": "solana",
+"mcapUsd": 489486,
+"sources": [
+"DEXBOOST"
+],
+"change1h": 50.5,
+"priceUsd": "0.0004958",
+"change24h": 964,
+"volume24h": 502175.77,
+"boostAmount": 30,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 59784.31,
+"marketCapUsd": 489486,
+"tokenAddress": "AFYC4gSWuRZysQQ7q3Kn9qJEHyjmAegF4KThbAjKpump",
+"pairCreatedAt": 1792770748000,
+"providerCount": 1,
+"firstSeenMcapUsd": 476894,
+"firstSeenPriceUsd": 0.0004831
+},
+{
+"url": "https://dexscreener.com/solana/aa2njmrcnfzeldwxks4vj9ynfqybtds8vczmyyzjpump",
+"icon": "https://cdn.dexscreener.com/cms/images/5DwQfaI-PKyPLxbL?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "this will run",
+"score": 79,
+"source": "DEXPROFILE",
+"symbol": "will",
+"chainId": "solana",
+"mcapUsd": 18078.55,
+"sources": [
+"DEXPROFILE"
+],
+"change1h": 106,
+"priceUsd": "0.00001807",
+"change24h": 481,
+"volume24h": 44744.92,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": null,
+"marketCapUsd": 18078.55,
+"tokenAddress": "AA2nJmRcNFzeLDWXkS4VJ9yNFqybtdS8VCZmYyzjpump",
+"pairCreatedAt": 1792770452000,
+"providerCount": 1,
+"firstSeenMcapUsd": 20722.68,
+"firstSeenPriceUsd": 2.072e-05
+},
+{
+"url": "https://www.geckoterminal.com/solana/pools/6KGbV6LxuATyk32jUaRuujgW63jmEJLezgyUxMqFWER7",
+"icon": null,
+"name": "McRib / SOL",
+"score": 64,
+"source": "GT",
+"symbol": "McRib",
+"chainId": "solana",
+"sources": [
+"GT"
+],
+"change1h": 4.615,
+"priceUsd": "0.000922301801160506385626070544126100623881556054717969782238279269",
+"change24h": 1964.221,
+"volume24h": 7685156.71821245,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"liquidityUsd": 99613.6908,
+"marketCapUsd": "902584.910489009",
+"tokenAddress": "8idEA8QovsZJka6d9Z35fejE5MbL37BJxvw5k5r6pump",
+"poolCreatedAt": "2026-10-22T19:23:27Z",
+"providerCount": 1,
+"firstSeenMcapUsd": 897807.77305593,
+"firstSeenPriceUsd": 0.000937118313271743
+},
+{
+"url": "https://dexscreener.com/solana/6g2etajpynkuj24b6tz9bwj7jk78l6v76sy9xmbnpump",
+"icon": "https://cdn.dexscreener.com/cms/images/1LFXQvJcLLFdkI4j?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Sidney Hill",
+"score": 62,
+"source": "DEXBOOST",
+"symbol": "Sidney ",
+"chainId": "solana",
+"mcapUsd": 16824.37,
+"sources": [
+"DEXBOOST"
+],
+"change1h": -1.01,
+"priceUsd": "0.00001682",
+"change24h": 370,
+"volume24h": 42179.92,
+"boostAmount": 30,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": null,
+"marketCapUsd": 16824.37,
+"tokenAddress": "6G2ETAjPYnkUJ24B6Tz9bWj7jk78L6V76sy9XMbNpump",
+"pairCreatedAt": 1792757839000,
+"providerCount": 1,
+"firstSeenMcapUsd": 16824.37,
+"firstSeenPriceUsd": 1.682e-05
+},
+{
+"url": "https://dexscreener.com/solana/hshj3t4vu3b1qms9nv5ikuaopmqqf1vut5vvatvlqc6p",
+"icon": "https://cdn.dexscreener.com/cms/images/6zV0t3_G4wVczREW?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Quit Your Job",
+"score": 59,
+"source": "DEXBOOST",
+"symbol": "QUIT",
+"chainId": "solana",
+"mcapUsd": 373117,
+"sources": [
+"DEXBOOST"
+],
+"change1h": 54.01,
+"priceUsd": "0.0003978",
+"change24h": 738,
+"volume24h": 26987.13,
+"boostAmount": 10,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 52345.06,
+"marketCapUsd": 373117,
+"tokenAddress": "HSHJ3t4Vu3B1qMs9Nv5iKUaoPMQQf1VuT5vVaTvLqc6p",
+"pairCreatedAt": 1792443858000,
+"providerCount": 1,
+"firstSeenMcapUsd": 371736,
+"firstSeenPriceUsd": 0.0003963
+},
+{
+"url": "https://dexscreener.com/solana/hqaut1abzq6wkerpcyd7yhndcxgu6bixejnkejunpump",
+"icon": "https://cdn.dexscreener.com/cms/images/LjPsOybL7yWbgFeK?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Virtual Trade ",
+"score": 55,
+"source": "DEXBOOST",
+"symbol": "VIRTUAL",
+"chainId": "solana",
+"mcapUsd": 286949,
+"sources": [
+"DEXBOOST",
+"GT"
+],
+"change1h": -5.77,
+"priceUsd": "0.0003277",
+"change24h": 16.35,
+"volume24h": 1298542.13,
+"boostAmount": 30,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 50732.43,
+"marketCapUsd": 286949,
+"tokenAddress": "HqaUT1abZq6WkeRpCYD7yHNdcxgu6biXejNkeJUNpump",
+"pairCreatedAt": 1792684092000,
+"poolCreatedAt": "2026-10-22T15:48:12Z",
+"providerCount": 2,
+"firstSeenMcapUsd": 287156,
+"firstSeenPriceUsd": 0.000328
+},
+{
+"url": "https://www.geckoterminal.com/solana/pools/FkU4jfQDqyL6UYDaYVKWpEGmzRBeGLjUgWmq4UKFBTbW",
+"icon": null,
+"name": "TIGGIEN / SOL",
+"score": 52,
+"source": "GTNEW",
+"symbol": "TIGGIEN",
+"chainId": "solana",
+"sources": [
+"GTNEW"
+],
+"change1h": 53.946,
+"priceUsd": "0.00007407365571286224291115778237455145076386005388622907174744185",
+"change24h": 53.946,
+"volume24h": 8297.4895311404,
+"firstSeenAt": "2026-10-23T18:22:07.356Z",
+"liquidityUsd": 21813.2586,
+"marketCapUsd": "75190.49799",
+"tokenAddress": "8sUWBJB8u7kBM85BuokJ2s4m44zKJQ17mBGERAYXpump",
+"poolCreatedAt": "2026-10-23T18:21:20Z",
+"providerCount": 1,
+"firstSeenMcapUsd": "75190.49799",
+"firstSeenPriceUsd": "0.00007407365571286224291115778237455145076386005388622907174744185"
+},
+{
+"url": "https://dexscreener.com/solana/7fnaca578t5jzqs3rovpmsezniohurhiqviwc5cgpump",
+"icon": "https://cdn.dexscreener.com/cms/images/B58PCmxp7yK0ijJ9?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "criminal",
+"score": 50,
+"source": "DEXPROFILE",
+"symbol": "criminal",
+"chainId": "solana",
+"mcapUsd": 9032.69,
+"sources": [
+"DEXPROFILE"
+],
+"change1h": 42.08,
+"priceUsd": "0.000009032",
+"change24h": 42.08,
+"volume24h": 41465.05,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": null,
+"marketCapUsd": 9032.69,
+"tokenAddress": "7FNaCa578T5jZqs3RoVPmsezNiohURHiqViWc5cGpump",
+"pairCreatedAt": 1792779414000,
+"providerCount": 1,
+"firstSeenMcapUsd": 11508.21,
+"firstSeenPriceUsd": 1.15e-05
+}
+],
+"ethereum": [
+{
+"url": "https://www.coingecko.com/en/coins/irys",
+"icon": "https://coin-images.coingecko.com/coins/images/70808/standard/irys.png?1764757341",
+"name": "Irys",
+"rank": 162,
+"score": 49,
+"coinId": "irys",
+"source": "CG",
+"symbol": "IRYS",
+"cgIndex": 1,
+"chainId": "ethereum",
+"sources": [
+"CG"
+],
+"priceUsd": 0.12128209612874497,
+"change24h": 484.41300354186615,
+"volume24h": null,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"tokenAddress": "0x50f41f589afaca2ef41fdf590fe7b90cd26dee64",
+"providerCount": 1,
+"firstSeenMcapUsd": null,
+"firstSeenPriceUsd": 0.12128209612874497
+},
+{
+"url": "https://www.coingecko.com/en/coins/dacity-coin-3",
+"icon": "https://coin-images.coingecko.com/coins/images/102179652/standard/logo.webp?1792510837",
+"name": "Dacity Coin",
+"rank": 844,
+"score": 21,
+"coinId": "dacity-coin-3",
+"source": "CG",
+"symbol": "DACITY",
+"cgIndex": 2,
+"chainId": "ethereum",
+"sources": [
+"CG"
+],
+"priceUsd": 0.01966518903321178,
+"change24h": 33.558638195239695,
+"volume24h": null,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"tokenAddress": "0x54ce4b27caabba24926865f035d432dbde2901f7",
+"providerCount": 1,
+"firstSeenMcapUsd": null,
+"firstSeenPriceUsd": 0.01966518903321178
+},
+{
+"url": "https://www.coingecko.com/en/coins/pudgy-penguins",
+"icon": "https://coin-images.coingecko.com/coins/images/52622/standard/PUDGY_PENGUINS_PENGU_PFP.png?1733809110",
+"name": "Pudgy Penguins",
+"rank": 110,
+"score": 16,
+"coinId": "pudgy-penguins",
+"source": "CG",
+"symbol": "PENGU",
+"cgIndex": 3,
+"chainId": "ethereum",
+"sources": [
+"CG"
+],
+"priceUsd": 0.008025366991757715,
+"change24h": 4.353312092087877,
+"volume24h": null,
+"firstSeenAt": "2026-10-23T18:20:36.212+00:00",
+"tokenAddress": "0x6418c0dd099a9fda397c766304cdd918233e8847",
+"providerCount": 1,
+"firstSeenMcapUsd": null,
+"firstSeenPriceUsd": 0.008025366991757715
+}
+],
+"robinhood": [
+{
+"url": "https://dexscreener.com/robinhood/0xc9675fe679c7d4e1b94416f66d61c96127eb964a",
+"icon": "https://cdn.dexscreener.com/cms/images/iVTXNRQ4OIoijASj?width=64&height=64&fit=crop&quality=95&format=auto",
+"name": "Giga Tenev",
+"score": 15,
+"source": "DEX",
+"symbol": "GIGATENEV",
+"chainId": "robinhood",
+"mcapUsd": 1135750,
+"sources": [
+"DEX"
+],
+"change1h": 0.36,
+"priceUsd": "0.001135",
+"change24h": -36,
+"volume24h": 1100605.38,
+"boostAmount": null,
+"firstSeenAt": "2026-10-23T18:20:36.211+00:00",
+"liquidityUsd": 81213.1,
+"marketCapUsd": 1135750,
+"tokenAddress": "0xC9675fe679C7d4e1b94416F66D61c96127eb964a",
+"pairCreatedAt": 1791568900000,
+"providerCount": 1,
+"firstSeenMcapUsd": 1131981,
+"firstSeenPriceUsd": 0.001131
+}
+]
+},
+"generatedAt": "2026-10-23T18:22:07.439Z",
+"justLaunched": [
+{
+"mint": "HtLRZ4DbmYRL3zd2fwy8grNS8PCos57BiU33STMEpump",
+"name": "100x speedrun",
+"symbol": "100x",
+"creator": "G1bX5uyiT5Lq6bLUwHp4bqMV72nrkHCtxAm7oR1L87MD",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:22:03.381Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 30.788557818439926,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "2sLFVFfdEJBm386SpvMPXobSCmppgR4Wb2JTxDEq36Lt",
+"name": "launchR",
+"symbol": "R",
+"creator": "ENcT5tA7rVPf5e32RDGSqYSvP6S2SVwbGX1uF9D353CR",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:22:02.088Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 27.958993476234856,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "F5AaAaXdmjVk7uPChKih6C8mvuAxV8UhQTwn1Rbpump",
+"name": "Marin",
+"symbol": "MARIN",
+"creator": "APg5Q58k7NQFxeLDPHDuqn3BAh5WDS4hfYhcQgwtBzGa",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:59.962Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 28.069557848389476,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "3PFyLWoG2e4rvjUJs9rz9BDSGsXWw5CBU73fDmmaEoAo",
+"name": "ZentroPay",
+"symbol": "Zentro",
+"creator": "EY5xg1Qb653Ayyh8gYwwFRPd3wWtNNfBozK8DdzehxWV",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:56.801Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 27.958993476234856,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "7XuQcQzjAGb7YetEqA6UqMLVtndbVtzmWiT6ixDvpump",
+"name": "Spook",
+"symbol": "SPOOK",
+"creator": "3A5QTytYThizDAe6iqStNnBTPGXsg7kfy9mnpHnvy2QD",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:53.535Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 27.97556421970524,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "WXMRyRZhsa19ety5erZhHg4N3xj3EVN92u94422teJp",
+"name": null,
+"symbol": null,
+"creator": "56XVRVAsgWv6ADaxzoNnbL38LMoWKM5WiSAhrAWUbd2p",
+"xHandle": null,
+"launchpad": "LetsBonk",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:50.090Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 6036.297502328495,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "3AqmBLBbE3VUZbMEeNQgccyiDQqiadrYzBsqVwt7pump",
+"name": "ZentroPay",
+"symbol": "Zentro",
+"creator": "38fPYtZbY2V1A1S8J9s46CBiutYjD9wQtk9Ciq4zdKcH",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:49.492Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 29.224832227754032,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "6L38WYXXh7s4g2Q9X7L27XcpYCgXqmNp1r2fjjUyefLR",
+"name": "Exit Liquidity",
+"symbol": "exit",
+"creator": "HgSnLUYJ8pfP13EqoMxnwPLD2LGvS36n7Z6qFquU5hzM",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:41.256Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 29.41131559151932,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "7nVP1xhAwbztgtgqABmpMMAX9x8hnc8TeUDkXDRZpump",
+"name": "BLANK DARK",
+"symbol": "$BLANK",
+"creator": "AWDGb1y2gaKkCWcCDP2Kk6DMmsqBgaRRt7DQdrsdq75E",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:37.027Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 29.830218088096093,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "FCtuzhU4RrnuhkdLoXSMvgdsqaT6fMo6qGrnKnsFpump",
+"name": "La rana ",
+"symbol": "$LRA$",
+"creator": "BucxcnNbPMFDF4fuDKJVLg9Z3ukFjJeNL7isguPSSejK",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:35.906Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 28.980666960804506,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "GKDdA2UrfbzbhFaxzbh2Ua5vwYNQAiPKqCbzUVNcL1jn",
+"name": "criminal",
+"symbol": "criminal",
+"creator": "G8YbUynM6LDYKCWZpNafNgTfEYC2FWEkW7Ju9fjNKfff",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:31.342Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 27.958993476234856,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "7jfmVeBoJT1noFzr6YHiRK44AVDgfcZbEJBh2a8Hpump",
+"name": "criminal",
+"symbol": "criminal",
+"creator": "Hp34goKgAhAYW6sw9iFAZofvDTr3DAhtkSKF1R9bAk2P",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": true,
+"launchedAt": "2026-10-23T18:21:30.606Z",
+"bundleCheck": null,
+"rugInsights": null,
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 38.05529667598631,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [
+{
+"kind": "heuristic",
+"label": "AllenHark blacklist (automated heuristic, unverified)",
+"reason": "automated heuristic (rug <1h / spam deployer / honeypot) \u2014 no per-wallet reason published",
+"listedAt": "2026-02-17T15:39:41.734Z",
+"sourceId": "allenhark"
+}
+],
+"good": null
+},
+"badActorMatches": [
+{
+"kind": "heuristic",
+"label": "AllenHark blacklist (automated heuristic, unverified)",
+"reason": "automated heuristic (rug <1h / spam deployer / honeypot) \u2014 no per-wallet reason published",
+"listedAt": "2026-02-17T15:39:41.734Z",
+"sourceId": "allenhark"
+}
+]
+},
+{
+"mint": "EDScuoKtVMG8B5NMdJJm6R7pTjAzaLgST9qrCBQdpump",
+"name": "GRINDCORE CAT",
+"symbol": "GRINDCAT",
+"creator": "newvxgk5iKU9nDDFzVuJvjNChES5iRs7bZNAE3U1uor",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:24.492Z",
+"bundleCheck": null,
+"rugInsights": {
+"rugged": false,
+"creator": "newvxgk5iKU9nDDFzVuJvjNChES5iRs7bZNAE3U1uor",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 53,
+"creatorTokens": {
+"top": [
+{
+"mint": "2nk8UM2Y5uUJRUsbvicnCacKezw6gQLELtrh1rXr96jn",
+"ageDays": 17.2,
+"createdAt": "2026-10-06T13:29:19.571636617Z",
+"marketCapUsd": 3869
+},
+{
+"mint": "GRuf5UtWbbcngzaR4M8ZEMfqWRgrtPR4bfa2Kd5Wpump",
+"ageDays": 16,
+"createdAt": "2026-10-07T19:01:03.834351705Z",
+"marketCapUsd": 3732
+},
+{
+"mint": "GhqaVSRydE96woMBZFvBhG9DMR9ZhWSyR6tc1HgBpump",
+"ageDays": 12.9,
+"createdAt": "2026-10-10T20:10:38.232013398Z",
+"marketCapUsd": 3575
+},
+{
+"mint": "B86pwtkkzU1bEsZQaSQpS4QUwkv7zdXWbJoMWph7pump",
+"ageDays": 13,
+"createdAt": "2026-10-10T18:26:46.35965686Z",
+"marketCapUsd": 3481
+},
+{
+"mint": "FcdMys8rJ5xupg1FcRPULzew9sCZ7PzAdtzHCVUivJBV",
+"ageDays": 12.5,
+"createdAt": "2026-10-11T07:30:05.284642169Z",
+"marketCapUsd": 3475
+}
+],
+"count": 41,
+"lowCapCount": 41,
+"lowCapThresholdUsd": 5000
+},
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 4,
+"insiderNetworkLargest": 0
+},
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 29.830218088096093,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "CK3prvSsYQNjaPxjxQeC1fZXzAyMuMiXHVDE8g8nXTV4",
+"name": "Exit Liquidity",
+"symbol": "exit",
+"creator": "HgSnLUYJ8pfP13EqoMxnwPLD2LGvS36n7Z6qFquU5hzM",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:20.473Z",
+"bundleCheck": null,
+"rugInsights": {
+"rugged": false,
+"creator": "HgSnLUYJ8pfP13EqoMxnwPLD2LGvS36n7Z6qFquU5hzM",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 2204,
+"creatorTokens": {
+"top": [
+{
+"mint": "393xwZNh3QBcaZaxZ3YcJvB8wEoQTta4VJ1XZ4pji7Qx",
+"ageDays": 1.3,
+"createdAt": "2026-10-22T12:02:09.660293898Z",
+"marketCapUsd": 24652
+},
+{
+"mint": "BcNaYbfjkj7EcUfj1Lv19tWGu2mHxBGZuPXS3sSg8nSP",
+"ageDays": 1.2,
+"createdAt": "2026-10-22T14:07:31.744349029Z",
+"marketCapUsd": 21095
+},
+{
+"mint": "D4rnCCHTRZsKc1K7PjFYAECWG38Ayz9wYTnfqkjbhsdz",
+"ageDays": 1.3,
+"createdAt": "2026-10-22T10:06:00.722467794Z",
+"marketCapUsd": 9763
+},
+{
+"mint": "4DGZqvTq8EAmkjtWjnq1FcnamoQJWsXT2iqJbTk2MNtN",
+"ageDays": 1.1,
+"createdAt": "2026-10-22T15:48:04.770723342Z",
+"marketCapUsd": 9611
+},
+{
+"mint": "5rNsSQfyF4kqVZev9sV6zn1kTqpRgrTHFco5N8EwPSEB",
+"ageDays": 1.1,
+"createdAt": "2026-10-22T16:42:41.955190734Z",
+"marketCapUsd": 5114
+}
+],
+"count": 50,
+"lowCapCount": 45,
+"lowCapThresholdUsd": 5000
+},
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 4,
+"insiderNetworkLargest": 0
+},
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 29.41131559151932,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+},
+{
+"mint": "G9qDsJVXM89FDDZBSVA8ppuMrrj39uFRsCNwGWYQpump",
+"name": " \u83f2\u5c14\u65af\u6258",
+"symbol": "FIRST0",
+"creator": "4hJRYz2yPyGZm6TSfHLDtTdVcEHFM4bwWdbYpw8PL9F3",
+"xHandle": null,
+"launchpad": "pump.fun",
+"isBadActor": false,
+"launchedAt": "2026-10-23T18:21:16.004Z",
+"bundleCheck": null,
+"rugInsights": {
+"rugged": false,
+"creator": "4hJRYz2yPyGZm6TSfHLDtTdVcEHFM4bwWdbYpw8PL9F3",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 238,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 4,
+"insiderNetworkLargest": 0
+},
+"walletCheck": "disabled",
+"xAccountAge": null,
+"marketCapSol": 30.211735786280613,
+"matchedMetas": [],
+"serialWinner": null,
+"creatorWallet": null,
+"devReputation": {
+"bad": [],
+"good": null
+},
+"badActorMatches": []
+}
+],
+"lunarSignals": {},
+"marketRegime": {
+"regime": "neutral",
+"updatedAt": "2026-10-23T18:20:35.526Z",
+"solChange24h": 1
+},
+"failedSources": [],
+"justGraduated": [
+{
+"mint": "6FWAAdCMiUqXCu9sntmRm4MU7ZdTwgp3QPWfffbU27Nn",
+"name": "Deaton",
+"pool": "pump-amm",
+"venue": "PumpSwap",
+"symbol": "DEATON",
+"creator": null,
+"launchpad": null,
+"rugSafety": null,
+"signature": "5HdDvraFidiVQhG79yRCH7TVDJpox3Y7wjfmzSsoAxFsGzExo1uFTEy9oKyCrZEYTvcKKGSKnNgvycffEbFAM59w",
+"graduatedAt": "2026-10-23T18:21:50.908Z"
+},
+{
+"mint": "9vYAJDF5WhKAqAn1W9bDDKkkCTNavFzD38T2TnUvpump",
+"name": null,
+"pool": "pump-amm",
+"venue": "PumpSwap",
+"symbol": null,
+"creator": "5MqpPSmgvrAMdccKjsoLSEYTinpwizbeiNXpvw9Q8qHV",
+"launchpad": null,
+"rugSafety": {
+"tier": "danger",
+"risks": [
+"High market cap per holder",
+"Top 10 holders high ownership",
+"Single holder ownership",
+"High ownership"
+],
+"insights": {
+"rugged": false,
+"creator": "5MqpPSmgvrAMdccKjsoLSEYTinpwizbeiNXpvw9Q8qHV",
+"launchpad": "Pump.Fun",
+"liquidityUsd": 55300,
+"creatorTokens": null,
+"creatorKnownAs": null,
+"insiderNetworks": 0,
+"insidersDetected": 0,
+"knownAccountsCount": 7,
+"insiderNetworkLargest": 0
+},
+"checkedAt": "2026-10-23T18:21:36.547Z",
+"riskScore": 65
+},
+"signature": "a4MMLVxsSMtY5vrRy8gKwm2AAxhhHs3LRrNXY5K7tiiQdc3yk5VuBJRsJAjesG9ntC9ZCd3sZEqVcSTrqk6KP2v",
+"graduatedAt": "2026-10-23T18:21:30.132Z",
+"devReputation": {
+"bad": [],
+"good": null
+}
+}
+],
+"badActorSources": [
+{
+"id": "auspex",
+"ok": true,
+"kind": "confirmed",
+"count": 0,
+"label": "Auspex own rug-dev list",
+"lastOkAt": "2026-10-23T18:20:35.515Z",
+"lastError": null
+},
+{
+"id": "curated",
+"ok": true,
+"kind": "confirmed",
+"count": 0,
+"label": "Auspex curated list (data/bad-actors.json)",
+"lastOkAt": "2026-10-23T18:20:35.454Z",
+"lastError": null
+},
+{
+"id": "ofac-sol",
+"ok": true,
+"kind": "sanctioned",
+"count": 4,
+"label": "OFAC SDN (Solana)",
+"lastOkAt": "2026-10-23T18:20:35.510Z",
+"lastError": null
+},
+{
+"id": "ofac-eth",
+"ok": true,
+"kind": "sanctioned",
+"count": 120,
+"label": "OFAC SDN (ETH/Base)",
+"lastOkAt": "2026-10-23T18:20:35.527Z",
+"lastError": null
+},
+{
+"id": "allenhark",
+"ok": true,
+"kind": "heuristic",
+"count": 6934,
+"label": "AllenHark blacklist (automated heuristic, unverified)",
+"lastOkAt": "2026-10-23T18:20:35.603Z",
+"lastError": null
+}
+],
+"devReputationStats": {
+"bad": {
+"confirmed": 0,
+"suspected": 0
+},
+"good": {
+"proven": 0,
+"promising": 0
+},
+"rugcheck": {
+"errors": 0,
+"queued": 7,
+"dropped": 0,
+"requests": 24,
+"cacheHits": 0,
+"rateLimited": 0
+},
+"gradWatch": 2
+},
+"signalCreatorFlags": {
+"solana:THg8NJDZh1fnDnWhrWxnhPJi4ktJ4FTsVf2Ev91pump": {
+"bad": [],
+"good": null,
+"creator": "FCb8eueSQFgSnebJUiBca9393U11QjWsAC8Fne5e5F1m"
+},
+"solana:6G2ETAjPYnkUJ24B6Tz9bWj7jk78L6V76sy9XMbNpump": {
+"bad": [],
+"good": null,
+"creator": "AxmqzFZy8dUTWu2Vw5amzLjFZr7FxGfCgjpMB7nLXmb9"
+},
+"solana:6LGGCwCUHDvcipZNtqWrb4MRtsPygNGbUx1df7LYpump": {
+"bad": [],
+"good": null,
+"creator": "Eoxb3mTQVTbNAuUT6fNZVnHvF3EoyRsQ2AT4ibSFrr1X"
+},
+"solana:8idEA8QovsZJka6d9Z35fejE5MbL37BJxvw5k5r6pump": {
+"bad": [],
+"good": null,
+"creator": "EM4sZLZEomWQfsRgszDziM5KBtHAiQvhvwDwhF1ziYAU"
+},
+"solana:AA2nJmRcNFzeLDWXkS4VJ9yNFqybtdS8VCZmYyzjpump": {
+"bad": [],
+"good": null,
+"creator": "GpbPzgk6M1CJq8a1F3SDooteB7nXJLw6nSaty4fUHq8R"
+},
+"solana:AFYC4gSWuRZysQQ7q3Kn9qJEHyjmAegF4KThbAjKpump": {
+"bad": [],
+"good": null,
+"creator": "BmyswrNBLcwPcexrNZEYKd6G4NGCzVTKs6NmrMCzaZJg"
+},
+"solana:Cy7qKnoNQEsUUafCvSYWroqrHD4vu7jrCoeurXyxpump": {
+"bad": [],
+"good": null,
+"creator": "8FSYEfW6dDHYJTKYqBhascpVXxCB5HvKQcTu3an7y4EF"
+},
+"solana:E8YeG61gTkBADYtnPcobeyMe6iBwbx5MkUGyNyhxpump": {
+"bad": [],
+"good": null,
+"creator": "Gnk2soWXpTCv6zyhFEFLg9WVNUJL49dhXrJMrX79JAD8"
+}
+}
+}

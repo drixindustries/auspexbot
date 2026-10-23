@@ -17,7 +17,7 @@ import { supabase } from "./db.js";
 import { fetchFollowing, fetchRecentTweets, resolveHandle, xApiAvailable, RateLimitError } from "./xApi.js";
 import { fetchFollowingNitter } from "./nitterScraper.js";
 import { config } from "./config.js";
-import { getSmartStats, elfaAvailable } from "./elfaClient.js";
+import { getSmartStats } from "./elfaClient.js";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -115,8 +115,10 @@ async function seedInitialSnapshot(handle, xUserId) {
   try {
     if (xApiAvailable() && xUserId) {
       following = await fetchFollowing(xUserId);
-    } else {
+    } else if (config.NITTER_FALLBACK) {
       following = await fetchFollowingNitter(handle);
+    } else {
+      throw new Error("X API not configured (X_BEARER_TOKEN) and Nitter fallback disabled");
     }
   } catch (err) {
     console.warn(`Could not seed snapshot for @${handle}: ${err.message}`);
@@ -245,7 +247,9 @@ async function pollAccount(account) {
     }
   }
 
-  // Fallback to Nitter if X API failed or not available
+  // Fallback to Nitter if X API failed or not available. Off by default: every public Nitter instance
+  // this used was dead or behind a Cloudflare challenge in Oct 2026 (NITTER_FALLBACK=1 to re-enable).
+  if (currentFollowing.length === 0 && !config.NITTER_FALLBACK) return [];
   if (currentFollowing.length === 0) {
     try {
       currentFollowing = await fetchFollowingNitter(account.handle);
@@ -429,6 +433,10 @@ export async function runPollCycle(bot) {
  * Polls every POLL_INTERVAL_MINUTES minutes.
  */
 export function startFollowWatcher(bot) {
+  if (!xApiAvailable() && !config.NITTER_FALLBACK) {
+    console.log("👁 Follow watcher inactive: X_BEARER_TOKEN not set and Nitter fallback disabled");
+    return;
+  }
   const expr = `*/${POLL_INTERVAL_MINUTES} * * * *`;
 
   cron.schedule(expr, () => {

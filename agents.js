@@ -11,7 +11,8 @@
  */
 
 import cron from "node-cron";
-import { fetchTrendingBase, fetchTokenData, calcRugScore, formatUSD, formatPrice } from "./gecko.js";
+import { calcRugScore, formatUSD } from "./gecko.js";
+import { fetchTrendingTokens } from "./lib/auspex.js";
 import { config } from "./config.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 300) {
         "anthropic-version":    "2023-06-01",
       },
       body: JSON.stringify({
-        model:      "claude-sonnet-4-20250514",
+        model:      config.ANTHROPIC_MODEL,
         max_tokens: maxTokens,
         system:     systemPrompt,
         messages:   [{ role: "user", content: userPrompt }],
@@ -77,7 +78,7 @@ If it looks solid, say why. Keep it under 60 words.`;
 export async function generateTokenCommentary(token) {
   const rugScore = calcRugScore(token);
 
-  const prompt = `Token: ${token.name} (${token.symbol}) on Base
+  const prompt = `Token: ${token.name} (${token.symbol}) on ${token.chain || "Base"}
 Price: ${token.price} | 24h Change: ${token.change}
 24h Volume: ${token.volume24h} | Liquidity: ${token.liquidity}
 Holders: ${token.holders} | Market Cap: ${token.marketCap}
@@ -158,7 +159,7 @@ async function generateAnomalyAlert(token, anomalies) {
   const rugScore = calcRugScore(token);
   const signals  = anomalies.join("; ");
 
-  const prompt = `Token: ${token.name} (${token.symbol}) on Base
+  const prompt = `Token: ${token.name} (${token.symbol}) on ${token.chain || "Base"}
 Address: ${token.address}
 Rug Score: ${rugScore}/100
 Detected anomalies: ${signals}
@@ -168,7 +169,7 @@ Write 1-2 sentences explaining what this likely means. Be direct.`;
   const commentary = await callClaude(ANOMALY_SYSTEM, prompt, 100);
 
   const lines = [
-    `🚨 *VIGIL ALERT — ${escMd(token.name)} \\(${escMd(token.symbol)}\\)*`,
+    `🚨 *AUSPEX ALERT — ${escMd(token.name)} \\(${escMd(token.symbol)}\\)*`,
     ``,
     ...anomalies.map((a) => `⚠️ ${escMd(a)}`),
   ];
@@ -177,7 +178,7 @@ Write 1-2 sentences explaining what this likely means. Be direct.`;
     lines.push(``, `_${escMd(commentary)}_`);
   }
 
-  lines.push(``, `[Basescan](https://basescan.org/token/${token.address})`);
+  lines.push(``, `[Explorer](${token.explorerUrl || `https://basescan.org/token/${token.address}`})`);
 
   return lines.join("\n");
 }
@@ -190,7 +191,7 @@ export function startAnomalyWatcher(bot) {
   // Run every 30 minutes
   cron.schedule("*/30 * * * *", async () => {
     try {
-      const tokens = await fetchTrendingBase(20);
+      const tokens = await fetchTrendingTokens(20);
 
       for (const token of tokens) {
         const prev    = tokenSnapshots.get(token.address);
@@ -244,7 +245,7 @@ export async function generateRugPostMortem(token, liquidityBefore, liquidityAft
   const rugScore = calcRugScore(token);
   const liqDropPct = Math.round(((liquidityBefore - liquidityAfter) / liquidityBefore) * 100);
 
-  const prompt = `Token: ${token.name} (${token.symbol}) on Base
+  const prompt = `Token: ${token.name} (${token.symbol}) on ${token.chain || "Base"}
 Address: ${token.address}
 Liquidity before: ${formatUSD(liquidityBefore)}
 Liquidity after:  ${formatUSD(liquidityAfter)}
@@ -270,7 +271,7 @@ Write a 3-5 sentence post-mortem. What happened, what were the warning signs, wh
     lines.push(`_Liquidity pulled\\. Exercise caution with any remaining position\\._`);
   }
 
-  lines.push(``, `[Basescan](https://basescan.org/token/${token.address})`);
+  lines.push(``, `[Explorer](${token.explorerUrl || `https://basescan.org/token/${token.address}`})`);
 
   return lines.join("\n");
 }
@@ -289,7 +290,7 @@ Do not use bullet points. Write in flowing sentences.`;
 export async function postDailyDigest(bot) {
   try {
     // Fetch current top tokens as context
-    const tokens = await fetchTrendingBase(10);
+    const tokens = await fetchTrendingTokens(10);
 
     if (tokens.length === 0) {
       console.log("No data for daily digest — skipping");
@@ -316,7 +317,7 @@ export async function postDailyDigest(bot) {
     const date = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
     const prompt = `Date: ${date}
-Top 10 Base tokens right now:
+Top 10 Auspex signals right now (Solana + Base):
 ${tokenLines}
 
 Top gainer: ${topGainer?.name} (${topGainer?.change})
@@ -329,7 +330,7 @@ Write the morning digest for this Base alpha channel. 4-6 sentences covering mar
     const now = new Date().toUTCString().replace(/:\d\d GMT/, " UTC");
 
     const lines = [
-      `🌅 *VIGIL — DAILY DIGEST*`,
+      `🌅 *AUSPEX — DAILY DIGEST*`,
       `_${escMd(now)}_`,
       ``,
     ];

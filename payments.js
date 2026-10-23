@@ -2,7 +2,6 @@ import { config } from "./config.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function toHex(n) { return "0x" + BigInt(n).toString(16); }
 function parseHexInt(hex) { return parseInt(hex, 16); }
 
 function padAddress(addr) {
@@ -27,10 +26,38 @@ async function getSolPrice() {
       "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
     );
     const json = await res.json();
-    return json?.solana?.usd || 150;
+    return json?.solana?.usd || null;
   } catch {
-    return 150; // fallback price
+    return null; // never guess a price — a stale $150 fallback mis-priced SOL payments
   }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Rejects transactions older than PAYMENT_MAX_AGE_DAYS (or with no timestamp). Exported for tests. */
+export function assertRecent(timeMs, now = Date.now()) {
+  if (!timeMs) throw new Error("Could not read the transaction time");
+  if (now - timeMs > config.PAYMENT_MAX_AGE_DAYS * DAY_MS) {
+    throw new Error(`Transaction is older than ${config.PAYMENT_MAX_AGE_DAYS} days — send a new payment`);
+  }
+}
+
+/**
+ * Pure: USDC / SOL received by `owner` in a parsed Solana transaction, from pre/post balances.
+ * Works for every transfer shape (transfer, transferChecked, ATA creation, inner instructions) because it
+ * reads balances by OWNER rather than trusting instruction fields. Exported for tests.
+ */
+export function solanaReceived(tx, owner, usdcMint) {
+  const meta = tx?.meta || {};
+  const sumFor = (list) => (list || [])
+    .filter((b) => b.owner === owner && b.mint === usdcMint)
+    .reduce((s, b) => s + BigInt(b.uiTokenAmount?.amount || "0"), 0n);
+  const usdcRaw = sumFor(meta.postTokenBalances) - sumFor(meta.preTokenBalances);
+  const keys = tx?.transaction?.message?.accountKeys || [];
+  const idx = keys.findIndex((k) => (typeof k === "string" ? k : k.pubkey) === owner);
+  const lamports = idx >= 0 ? (meta.postBalances?.[idx] ?? 0) - (meta.preBalances?.[idx] ?? 0) : 0;
+  const signer = keys.find((k) => typeof k === "object" && k.signer);
+  return { usdcRaw: usdcRaw > 0n ? Number(usdcRaw) : 0, lamports: Math.max(0, lamports), from: signer ? signer.pubkey : (typeof keys[0] === "string" ? keys[0] : keys[0]?.pubkey) || null };
 }
 
 // ── Base USDC verification ─────────────────────────────────────────────────
@@ -62,6 +89,11 @@ export async function verifyBaseUSDC(txHash) {
   const receipt = await rpcBase("eth_getTransactionReceipt", [txHash]);
   if (!receipt) throw new Error("Could not fetch transaction receipt");
   if (receipt.status !== "0x1") throw new Error("Transaction failed on-chain");
+
+  // Replay guard: old transfers to the receive address can't be claimed by whoever finds them on-chain.
+  const block = await rpcBase("eth_getBlockByNumber", [tx.blockNumber, false]);
+  const blockTimeMs = block?.timestamp ? parseHexInt(block.timestamp) * 1000 : null;
+  assertRecent(blockTimeMs);
 
   // Find the Transfer log to our address
   const receiveAddrPadded = padAddress(config.BASE_RECEIVE_ADDR);
@@ -130,67 +162,27 @@ export async function verifySolanaPayment(txSignature) {
   // Check it's confirmed
   if (!tx.slot) throw new Error("Transaction not yet confirmed");
 
-  const receiveAddr = config.SOLANA_RECEIVE_ADDR;
-  const instructions = tx.transaction?.message?.instructions || [];
-  const innerInstructions = tx.meta?.innerInstructions?.flatMap((i) => i.instructions) || [];
-  const allInstructions = [...instructions, ...innerInstructions];
+  if (tx.meta?.err) throw new Error("Transaction failed on-chain");
+  assertRecent(tx.blockTime ? tx.blockTime * 1000 : null);
 
-  // Try to find a USDC SPL token transfer to our address
-  for (const ix of allInstructions) {
-    if (ix.program === "spl-token" && ix.parsed?.type === "transfer") {
-      const info = ix.parsed.info;
-      // Check destination — could be the token account or owner
-      if (
-        info?.destination === receiveAddr ||
-        info?.authority === receiveAddr ||
-        info?.multisigAuthority === receiveAddr
-      ) {
-        const mint = info?.mint;
-        if (mint === config.USDC_SOLANA) {
-          const rawAmount = parseInt(info.amount || "0", 10);
-          const amountUsd = rawAmount / 1_000_000; // USDC 6 decimals
-          if (rawAmount < config.MIN_USDC_RAW) {
-            throw new Error(`Insufficient USDC: received $${amountUsd.toFixed(2)}, minimum is $${config.PRICE_USD}`);
-          }
-          return { valid: true, amountUsd, chain: "solana_usdc", fromAddress: info.authority };
-        }
-      }
+  // The old version accepted ANY transferChecked of >= $9.50 USDC without checking the destination, so
+  // any public USDC transfer signature unlocked a subscription. Balances by owner are authoritative.
+  const got = solanaReceived(tx, config.SOLANA_RECEIVE_ADDR, config.USDC_SOLANA);
+  if (got.usdcRaw > 0) {
+    const amountUsd = got.usdcRaw / 1_000_000;
+    if (got.usdcRaw < config.MIN_USDC_RAW) {
+      throw new Error(`Insufficient USDC: received $${amountUsd.toFixed(2)}, minimum is $${config.PRICE_USD}`);
     }
-
-    // Also check for associated token account transfers (most common USDC send pattern)
-    if (ix.program === "spl-token" && ix.parsed?.type === "transferChecked") {
-      const info = ix.parsed.info;
-      if (info?.mint === config.USDC_SOLANA) {
-        // Check if destination owner is our receive address
-        const destOwner = info?.destination; // simplified — in production verify owner
-        const rawAmount = parseInt(info?.tokenAmount?.amount || "0", 10);
-        const amountUsd = rawAmount / 1_000_000;
-        if (rawAmount >= config.MIN_USDC_RAW) {
-          return { valid: true, amountUsd, chain: "solana_usdc", fromAddress: info.authority };
-        }
-      }
-    }
+    return { valid: true, amountUsd, chain: "solana_usdc", fromAddress: got.from };
   }
-
-  // Try native SOL transfer
-  const accountKeys = tx.transaction?.message?.accountKeys || [];
-  const postBalances = tx.meta?.postBalances || [];
-  const preBalances  = tx.meta?.preBalances  || [];
-
-  const receiveIndex = accountKeys.findIndex(
-    (k) => (typeof k === "string" ? k : k.pubkey) === receiveAddr
-  );
-
-  if (receiveIndex >= 0) {
-    const solReceived = (postBalances[receiveIndex] - preBalances[receiveIndex]) / 1e9; // lamports → SOL
-    if (solReceived > 0) {
-      const solPrice  = await getSolPrice();
-      const amountUsd = solReceived * solPrice;
-      if (amountUsd < config.MIN_SOL_USD) {
-        throw new Error(`Insufficient SOL: received $${amountUsd.toFixed(2)}, minimum is $${config.PRICE_USD}`);
-      }
-      return { valid: true, amountUsd, chain: "solana_sol", fromAddress: accountKeys[0]?.pubkey || accountKeys[0] };
+  if (got.lamports > 0) {
+    const solPrice = await getSolPrice();
+    if (!solPrice) throw new Error("Could not fetch the SOL price — try again in a minute");
+    const amountUsd = (got.lamports / 1e9) * solPrice;
+    if (amountUsd < config.MIN_SOL_USD) {
+      throw new Error(`Insufficient SOL: received $${amountUsd.toFixed(2)}, minimum is $${config.PRICE_USD}`);
     }
+    return { valid: true, amountUsd, chain: "solana_sol", fromAddress: got.from };
   }
 
   throw new Error("No valid payment to our address found in this transaction");
