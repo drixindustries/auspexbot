@@ -1,4 +1,3 @@
-import { calcRugScore } from "./gecko.js";
 
 function escMd(str) {
   if (!str) return "";
@@ -63,12 +62,12 @@ export function formatEliteCallCard(token, caller, rugScore, callerRank, callerS
 /**
  * /mystats reply.
  */
-export function formatMyStats(stats, username) {
+export function formatMyStats(stats, _username) {
   if (!stats || stats.scored_calls < 1) {
     return [
       `📊 *Your Stats*`,
       ``,
-      `No scored calls yet\\. Make calls with \`/call 0x\\.\\.\\.\``,
+      `No scored calls yet\\. Make calls with \`/call <CA>\``,
       `Calls are scored 24h after you post them\\.`,
       `You need ${5} scored calls to enter the rankings\\.`,
     ].join("\n");
@@ -117,7 +116,7 @@ export function formatLeaderboard(callers) {
   });
 
   return [
-    `🏆 *VIGIL LEADERBOARD*`,
+    `🏆 *AUSPEX LEADERBOARD*`,
     `_Top callers by composite score_`,
     ``,
     ...rows,

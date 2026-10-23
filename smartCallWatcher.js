@@ -17,7 +17,11 @@
  */
 
 import { getSmartStats, elfaAvailable } from "./elfaClient.js";
-import { fetchTokenData, calcRugScore } from "./gecko.js";
+import { tokenSnapshot } from "./lib/scan.js";
+import { lookupCoin } from "./lib/auspex.js";
+import { badgesFor } from "./lib/badges.js";
+import { badgeLine, compactUsd, pct, siteCoinUrl } from "./lib/format.js";
+import { itemFlags } from "./lib/rules.js";
 import { config } from "./config.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -60,48 +64,35 @@ function extractHandle(text) {
   return null;
 }
 
-/** Risk emoji for rug score */
-function riskEmoji(score) {
-  if (score >= 65) return "🔴";
-  if (score >= 35) return "🟡";
-  return "🟢";
-}
+// Without Elfa (no key, or after the smart-stats endpoint's removal on 28 Oct 2026) calls are gated by
+// Auspex instead: the CA must be on the Auspex board and carry no hard flags. SMART_CALL_UNGATED=1 passes all.
+const HARD_FLAGS = ["sanctioned", "confirmed", "suspected", "rugged", "danger"];
 
-/** Build the broadcast message */
-function formatSmartCallCard({ handle, smartStats, token, rugScore, sourceLink, threshold }) {
-  const changeArrow = token?.priceChange24h >= 0 ? "▲" : "▼";
-  const change = token?.priceChange24h != null
-    ? `${changeArrow} \`${Math.abs(token.priceChange24h).toFixed(1)}%\``
-    : "";
-
-  const tierLine = smartStats?.influenceTier
-    ? ` \\| ${escMd(smartStats.influenceTier)}`
-    : "";
-
-  const sourceLine = sourceLink
-    ? `\n[View original](${sourceLink})`
-    : "";
-
-  const tokenBlock = token
-    ? [
-        ``,
-        `💰 Price: \`${escMd(String(token.price ?? "?"))}\`  ${change}`,
-        `├ Vol:   \`${escMd(token.volume24h ?? "?")}\`  Liq: \`${escMd(token.liquidity ?? "?")}\``,
-        `└ ${riskEmoji(rugScore)} Rug Score: \`${rugScore}/100\``,
-        ``,
-        `\`${escMd(token.address)}\``,
-      ].join("\n")
-    : "";
-
-  return [
+/** Build the broadcast message (token block uses the same Auspex badges as the site). */
+function formatSmartCallCard({ handle, smartStats, token, auspexItem, sourceLink, threshold, gate }) {
+  const tierLine = smartStats?.influenceTier ? ` \\| ${escMd(smartStats.influenceTier)}` : "";
+  const sourceLine = sourceLink ? `\n[View original](${sourceLink})` : "";
+  const lines = [
     `📡 *SMART CALL DETECTED*`,
     ``,
     `Caller: @${escMd(handle)}`,
-    `Smart Followers: \`${smartStats?.smartFollowerCount ?? "?"}\`${tierLine}`,
-    `Threshold: \`≥ ${threshold}\``,
-    tokenBlock,
-    sourceLine,
-  ].filter((l) => l !== undefined).join("\n");
+    gate === "elfa"
+      ? `Smart Followers: \`${smartStats?.smartFollowerCount ?? "?"}\`${tierLine}\nThreshold: \`≥ ${threshold}\``
+      : escMd(gate === "auspex" ? "Gate: on the Auspex board, no hard flags (Elfa unavailable)" : "Gate: none (SMART_CALL_UNGATED)"),
+  ];
+  if (token) {
+    lines.push(
+      ``,
+      `💰 ${escMd([`Price $${token.priceRaw ? Number(token.priceRaw).toPrecision(4) : "?"}`, `Liq ${compactUsd(token.liquidityUsd)}`, `Vol ${compactUsd(token.volume24h)}`, `24h ${pct(token.change24h)}`].join(" · "))}`,
+    );
+  }
+  if (auspexItem) {
+    const bl = badgeLine(badgesFor(auspexItem));
+    lines.push(escMd(`Auspex: ${auspexItem.kind}${auspexItem.score != null ? " · score " + auspexItem.score : ""}`) + (bl ? "\n" + bl : ""));
+    lines.push(`[View on Auspex](${siteCoinUrl(config.AUSPEX_SITE_URL, auspexItem)})`);
+  }
+  if (token?.address) lines.push(``, `\`${token.address}\``);
+  return lines.join("\n") + sourceLine;
 }
 
 // ── Dedup — avoid rebroadcasting same CA within 1 hour ───────────────────
@@ -143,7 +134,7 @@ export function startSmartCallWatcher(bot) {
   }
 
   if (!elfaAvailable()) {
-    console.warn("📡 Smart Call Watcher: ELFA_API_KEY not set — all calls will pass unscored (no gating)");
+    console.warn("📡 Smart Call Watcher: Elfa unavailable (no ELFA_API_KEY, or smart-stats retired 28 Oct 2026) — gating by Auspex board + flags");
   }
 
   console.log(`📡 Smart Call Watcher: monitoring ${sourceChatIds.size} source group(s)`);
@@ -177,36 +168,40 @@ export function startSmartCallWatcher(bot) {
 
       console.log(`[SmartCall] 📨 Call detected from @${handle} — CA: ${ca}`);
 
-      // Elfa lookup
-      let smartStats = null;
-      let passes = true; // default pass if Elfa not configured
+      // Auspex view of this CA (same badges as the site), if it's on the board
+      let auspexItem = null;
+      try { auspexItem = (await lookupCoin(ca)).items[0] || null; } catch { /* cache unavailable */ }
 
+      // Gate: Elfa smart followers when available, otherwise Auspex
+      let smartStats = null;
+      let gate = "ungated";
       if (elfaAvailable()) {
+        gate = "elfa";
         smartStats = await getSmartStats(handle);
         const smartCount = smartStats?.smartFollowerCount ?? 0;
-        passes = smartCount >= threshold;
-
-        if (!passes) {
+        if (smartCount < threshold) {
           console.log(`[SmartCall] ❌ @${handle} filtered — ${smartCount} smart followers (need ≥${threshold})`);
           return next();
         }
-
         console.log(`[SmartCall] ✅ @${handle} passed — ${smartCount} smart followers`);
+      } else if (!/^(1|true)$/i.test(process.env.SMART_CALL_UNGATED || "")) {
+        gate = "auspex";
+        const hard = auspexItem ? HARD_FLAGS.filter((f) => itemFlags(auspexItem).has(f)) : [];
+        if (!auspexItem || hard.length) {
+          console.log(`[SmartCall] ❌ ${ca} filtered — ${auspexItem ? "flagged: " + hard.join(", ") : "not on the Auspex board"}`);
+          return next();
+        }
       }
 
       // Mark as seen before async work to prevent race condition
       markSeen(ca);
 
-      // Fetch token data (best-effort — don't fail if GeckoTerminal misses it)
+      // Token data, chain-agnostic (best-effort)
       let token = null;
-      let rugScore = 0;
-      if (chain === "base") {
-        try {
-          token = await fetchTokenData(ca);
-          if (token) rugScore = calcRugScore(token);
-        } catch (e) {
-          console.warn(`[SmartCall] Token fetch failed for ${ca}:`, e.message);
-        }
+      try {
+        token = await tokenSnapshot(ca, { chain: chain === "base" ? "base" : "solana" });
+      } catch (e) {
+        console.warn(`[SmartCall] Token fetch failed for ${ca}:`, e.message);
       }
 
       // Build source link
@@ -215,14 +210,7 @@ export function startSmartCallWatcher(bot) {
         : null;
 
       // Broadcast
-      const card = formatSmartCallCard({
-        handle,
-        smartStats,
-        token,
-        rugScore,
-        sourceLink,
-        threshold,
-      });
+      const card = formatSmartCallCard({ handle, smartStats, token, auspexItem, sourceLink, threshold, gate });
 
       await bot.telegram.sendMessage(outputChannelId, card, {
         parse_mode: "MarkdownV2",

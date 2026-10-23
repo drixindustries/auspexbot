@@ -1,811 +1,539 @@
 import { Telegraf } from "telegraf";
 import { config } from "./config.js";
-import { isSubscribed, grantSubscription, txAlreadyUsed } from "./subscribers.js";
+import { supabase } from "./db.js";
+import { isSubscribed, grantSubscription, txAlreadyUsed, claimPayment } from "./subscribers.js";
 import { verifyBaseUSDC, verifySolanaPayment } from "./payments.js";
 import { generateInviteLink, startAccessCron } from "./access.js";
 import { startAutoPost } from "./autopost.js";
 import { startAnomalyWatcher, startDailyDigest } from "./agents.js";
 import { addWatchedAccount, removeWatchedAccount, getWatchedAccounts, startFollowWatcher } from "./followWatcher.js";
 import { recordCall, isEliteCaller, getCallerStats, getLeaderboard, startRankingCrons, isCallOnCooldown, setCallCooldown, isDuplicateCall, refreshCallerElfaStats } from "./rankings.js";
-import { fetchTokenData, calcRugScore, fetchTopPoolAddress } from "./gecko.js";
 import { fetchOHLCV, renderDualChart } from "./chartRenderer.js";
-import { fetchSafety } from "./safetyCheck.js";
-import { getSmartStats } from "./elfaClient.js";
-import { formatCallCard, formatEliteCallCard, formatMyStats, formatLeaderboard } from "./callFormatter.js";
+import { formatMyStats, formatLeaderboard } from "./callFormatter.js";
 import { startSmartCallWatcher } from "./smartCallWatcher.js";
-import {
-  formatPaymentMessage,
-  formatSubConfirmed,
-  formatAlreadySubbed,
-} from "./formatter.js";
+import { formatPaymentMessage, formatSubConfirmed, formatAlreadySubbed } from "./formatter.js";
+import { esc, code } from "./lib/md.js";
+import { auspexData, outcomes, lookupCoin } from "./lib/auspex.js";
+import { signalItems, launchItems, graduationItems } from "./lib/normalize.js";
+import { badgesFor } from "./lib/badges.js";
+import { formatCoinCard, formatScanCard, formatFeed, formatItemList, formatPaper, formatHallOfFame, formatPerf, badgeLine, siteCoinUrl, compactUsd, pct } from "./lib/format.js";
+import { extractAddress, scanAddress, tokenSnapshot } from "./lib/scan.js";
+import { applyFilterCommand, describeFilters, normalizeFilters, DEFAULT_FILTERS } from "./lib/rules.js";
+import { createSupabaseStore } from "./lib/alertStore.js";
+import { createAlertEngine } from "./lib/alertEngine.js";
+import { hitRateFor } from "./lib/outcomes.js";
 
 // ── Init ──────────────────────────────────────────────────────────────────
 
-const bot = new Telegraf(config.BOT_TOKEN);
+const bot = new Telegraf(config.BOT_TOKEN, { telegram: { apiRoot: config.TELEGRAM_API_ROOT } });
+const MD = { parse_mode: "MarkdownV2", disable_web_page_preview: true };
+const reply = (ctx, text, extra = {}) => ctx.reply(text, { ...MD, ...extra });
+const isOwner = (id) => Boolean(config.OWNER_TELEGRAM_ID) && String(id) === String(config.OWNER_TELEGRAM_ID);
+const argsOf = (ctx) => (ctx.message?.text || "").split(/\s+/).slice(1);
+
+async function subscriberRow(telegramId, cols = "expires_at") {
+  const { data } = await supabase.from("vigil_subscribers").select(cols).eq("telegram_id", String(telegramId)).maybeSingle();
+  return data;
+}
 
 // ── /start ────────────────────────────────────────────────────────────────
 
 bot.start(async (ctx) => {
   const telegramId = ctx.from.id;
-
-  // Check if already subscribed
-  const subbed = await isSubscribed(telegramId);
-  if (subbed) {
-    const { data } = await (await import("./db.js")).supabase
-      .from("vigil_subscribers")
-      .select("expires_at")
-      .eq("telegram_id", String(telegramId))
-      .single();
-
-    return ctx.reply(formatAlreadySubbed(data?.expires_at), {
-      parse_mode: "MarkdownV2",
-    });
+  if (await isSubscribed(telegramId)) {
+    const data = await subscriberRow(telegramId);
+    return reply(ctx, formatAlreadySubbed(data?.expires_at) + "\n\n" + esc("Set up alerts with /alerts on — see /help."));
   }
-
-  // Show payment instructions
   if (!config.BASE_RECEIVE_ADDR || !config.SOLANA_RECEIVE_ADDR) {
     return ctx.reply("⚙️ Bot is not fully configured yet. Check back soon.");
   }
-
-  await ctx.reply(
-    formatPaymentMessage(
-      config.BASE_RECEIVE_ADDR,
-      config.SOLANA_RECEIVE_ADDR,
-      config.PRICE_USD
-    ),
-    { parse_mode: "MarkdownV2" }
-  );
+  await reply(ctx, formatPaymentMessage(config.BASE_RECEIVE_ADDR, config.SOLANA_RECEIVE_ADDR, config.PRICE_USD));
 });
+
+// ── payment verification (shared by /paid and /verifypaid) ────────────────
+
+async function verifyPayment(txHash) {
+  return txHash.startsWith("0x") ? verifyBaseUSDC(txHash) : verifySolanaPayment(txHash);
+}
 
 // ── /paid <txhash> ────────────────────────────────────────────────────────
 
 bot.command("paid", async (ctx) => {
   const telegramId = ctx.from.id;
-  const args       = ctx.message.text.split(/\s+/).slice(1);
-  const txHash     = args[0]?.trim();
-
+  const txHash = argsOf(ctx)[0]?.trim();
   if (!txHash) {
-    return ctx.reply(
-      "Please include your transaction hash\\.\n\nExample:\n`/paid 0x1234...abcd`\nor for Solana:\n`/paid 5JuE...xYz`",
-      { parse_mode: "MarkdownV2" }
-    );
+    return reply(ctx, esc("Please include your transaction hash.") + "\n\n" + esc("Example:") + "\n" + code("/paid 0x1234...abcd") + "\n" + esc("or for Solana:") + "\n" + code("/paid 5JuE...xYz"));
   }
-
-  // Already subscribed?
-  const subbed = await isSubscribed(telegramId);
-  if (subbed) {
-    const { data } = await (await import("./db.js")).supabase
-      .from("vigil_subscribers")
-      .select("expires_at")
-      .eq("telegram_id", String(telegramId))
-      .single();
-    return ctx.reply(formatAlreadySubbed(data?.expires_at), { parse_mode: "MarkdownV2" });
+  if (await isSubscribed(telegramId)) {
+    const data = await subscriberRow(telegramId);
+    return reply(ctx, formatAlreadySubbed(data?.expires_at));
   }
-
-  // Check if tx already used
-  const used = await txAlreadyUsed(txHash);
-  if (used) {
-    return ctx.reply("❌ This transaction has already been used to activate a subscription\\.", {
-      parse_mode: "MarkdownV2",
-    });
+  if (await txAlreadyUsed(txHash)) {
+    return reply(ctx, esc("❌ This transaction has already been used to activate a subscription."));
   }
-
-  // Show verifying message
-  const verifyMsg = await ctx.reply("🔍 Verifying payment on\\-chain\\.\\.\\.", {
-    parse_mode: "MarkdownV2",
-  });
-
-  let paymentResult;
-  let verifyError;
-
-  // Try Base USDC first (0x prefix = EVM tx hash)
-  if (txHash.startsWith("0x")) {
-    try {
-      paymentResult = await verifyBaseUSDC(txHash);
-    } catch (err) {
-      verifyError = err.message;
-    }
-  } else {
-    // Assume Solana signature
-    try {
-      paymentResult = await verifySolanaPayment(txHash);
-    } catch (err) {
-      verifyError = err.message;
-    }
-  }
-
-  // Delete the "verifying..." message
-  try {
-    await ctx.telegram.deleteMessage(ctx.chat.id, verifyMsg.message_id);
-  } catch {}
+  const verifyMsg = await reply(ctx, esc("🔍 Verifying payment on-chain..."));
+  let paymentResult, verifyError;
+  try { paymentResult = await verifyPayment(txHash); } catch (err) { verifyError = err.message; }
+  try { await ctx.telegram.deleteMessage(ctx.chat.id, verifyMsg.message_id); } catch { /* already gone */ }
 
   if (!paymentResult || !paymentResult.valid) {
-    return ctx.reply(
-      `❌ Payment verification failed\\.\n\n${(verifyError || "Unknown error").replace(/[_*[\]()~`>#+=|{}.!\\-]/g, "\\$&")}`,
-      { parse_mode: "MarkdownV2" }
-    );
+    return reply(ctx, esc("❌ Payment verification failed.") + "\n\n" + esc(verifyError || "Unknown error"));
   }
+  // Claim the tx atomically before granting, so the same tx can't be replayed by anyone (incl. /verifypaid).
+  const claimed = await claimPayment({
+    telegramId, chain: paymentResult.chain, fromAddress: paymentResult.fromAddress,
+    toAddress: txHash.startsWith("0x") ? config.BASE_RECEIVE_ADDR : config.SOLANA_RECEIVE_ADDR, amountUsd: paymentResult.amountUsd, txHash,
+  }).catch((e) => { console.error(e.message); return null; });
+  if (claimed === false) return reply(ctx, esc("❌ This transaction has already been used to activate a subscription."));
+  if (claimed === null) return reply(ctx, esc("❌ Payment verified but could not be recorded. Please contact support."));
 
-  // Grant subscription
   let expiresAt;
   try {
-    expiresAt = await grantSubscription({
-      telegramId,
-      telegramUsername: ctx.from.username,
-      chain:            paymentResult.chain,
-      txHash,
-      amountUsd:        paymentResult.amountUsd,
-    });
+    expiresAt = await grantSubscription({ telegramId, telegramUsername: ctx.from.username, chain: paymentResult.chain, txHash, amountUsd: paymentResult.amountUsd });
   } catch (err) {
     console.error("Failed to grant subscription:", err.message);
-    return ctx.reply("❌ Payment verified but failed to activate subscription\\. Please contact support\\.", {
-      parse_mode: "MarkdownV2",
-    });
+    return reply(ctx, esc("❌ Payment verified but failed to activate subscription. Please contact support."));
   }
-
-  // Generate invite link
   const inviteLink = await generateInviteLink(bot);
   if (!inviteLink) {
-    return ctx.reply(
-      `✅ *Payment verified\\!* Subscription active until ${new Date(expiresAt).toDateString().replace(/[.!]/g, "\\$&")}\\.\n\nContact @admin for channel access\\.`,
-      { parse_mode: "MarkdownV2" }
-    );
+    return reply(ctx, `✅ *${esc("Payment verified!")}* ` + esc(`Subscription active until ${new Date(expiresAt).toDateString()}. Contact the admin for channel access.`));
   }
-
-  await ctx.reply(formatSubConfirmed(expiresAt, inviteLink), {
-    parse_mode: "MarkdownV2",
-  });
-
-  console.log(`✅ New subscriber: ${telegramId} (@${ctx.from.username}) via ${paymentResult.chain}`);
+  await reply(ctx, formatSubConfirmed(expiresAt, inviteLink));
+  console.log(`✅ New subscriber: ${telegramId} via ${paymentResult.chain}`);
 });
 
 // ── /status ───────────────────────────────────────────────────────────────
 
 bot.command("status", async (ctx) => {
   const telegramId = ctx.from.id;
-  const subbed     = await isSubscribed(telegramId);
-
-  if (!subbed) {
-    return ctx.reply(
-      "❌ No active subscription\\.\n\nSend `/start` to subscribe\\.",
-      { parse_mode: "MarkdownV2" }
-    );
+  if (!(await isSubscribed(telegramId))) {
+    return reply(ctx, esc("❌ No active subscription.") + "\n\n" + esc("Send /start to subscribe."));
   }
-
-  const { data } = await (await import("./db.js")).supabase
-    .from("vigil_subscribers")
-    .select("expires_at, paid_chain, paid_amount")
-    .eq("telegram_id", String(telegramId))
-    .single();
-
-  const expires   = new Date(data?.expires_at).toDateString();
-  const chain     = data?.paid_chain || "unknown";
-  const amount    = data?.paid_amount ? `$${parseFloat(data.paid_amount).toFixed(2)}` : "?";
-
-  await ctx.reply(
-    [
-      `✅ *Subscription Active*`,
-      ``,
-      `├ Expires: \`${expires}\``,
-      `├ Chain:   \`${chain}\``,
-      `└ Paid:    \`${amount}\``,
-      ``,
-      `_Send \`/start\` to renew before expiry\\._`,
-    ].join("\n"),
-    { parse_mode: "MarkdownV2" }
-  );
+  const data = await subscriberRow(telegramId, "expires_at, paid_chain, paid_amount");
+  const expires = new Date(data?.expires_at).toDateString();
+  const amount = data?.paid_amount ? `$${parseFloat(data.paid_amount).toFixed(2)}` : "?";
+  await reply(ctx, [
+    `✅ *Subscription Active*`, ``,
+    `├ Expires: ${code(expires)}`,
+    `├ Chain:   ${code(data?.paid_chain || "unknown")}`,
+    `└ Paid:    ${code(amount)}`, ``,
+    `_${esc("Send /start to renew before expiry.")}_`,
+  ].join("\n"));
 });
 
 // ── /help ─────────────────────────────────────────────────────────────────
 
+const HELP = [
+  ["Auspex feed (same data as the site)", [
+    ["/feed [solana|base]", "top signals with badges"],
+    ["/coin <CA>", "full badges for any coin (alias /check; works in groups)"],
+    ["/launches", "recent pump.fun / LetsBonk launches"],
+    ["/grads", "recent graduations"],
+    ["/paper", "paper-trading results"],
+    ["/hof", "Hall of Fame"],
+    ["/perf [kind|score|source|badge|chain]", "signal performance: hit rates and returns since signal"],
+  ]],
+  ["Alerts", [
+    ["/alerts on|off", "DM / group alerts for coins matching your filters"],
+    ["/alerts", "show your filters"],
+    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5, reset"],
+  ]],
+  ["Callers", [
+    ["/call <CA>", "submit a tracked call (Solana or Base), scored at 24h"],
+    ["/mystats", "your caller stats and rank"],
+    ["/leaderboard", "top 10 callers"],
+    ["/register", "create a free caller account"],
+    ["/verify @handle", "link your X handle ($20/month)"],
+  ]],
+  ["Subscription", [
+    ["/start", "subscribe or view payment info"],
+    ["/paid <txhash>", "verify your payment"],
+    ["/status", "check your subscription"],
+  ]],
+];
+
 bot.help((ctx) => {
-  ctx.reply(
-    [
-      `👁 *VIGIL — Base Token Intelligence*`,
-      ``,
-      `*Commands:*`,
-      `\`/start\` — subscribe or view payment info`,
-      `\`/register\` — create a free caller account`,
-      `\`/verify @handle\` — link X handle \($20/month\) for public Augur profile`,
-      `\`/check 0x\.\.\.\` — scan any token \(works in groups\)`,
-      `\`/call 0x\.\.\.\` — submit a tracked call`,
-      `\`/mystats\` — your caller stats and rank`,
-      `\`/leaderboard\` — top 10 callers`,
-      `\`/paid <txhash>\` — verify your payment`,
-      `\`/status\` — check your subscription`,
-      `\`/help\` — show this message`,
-      ``,
-      `*Payment:*`,
-      `$${config.PRICE_USD}/month\\. Accepts USDC on Base, USDC on Solana, or SOL\\.`,
-      ``,
-      `*Channel:*`,
-      `Top Base tokens posted every ${config.POST_INTERVAL_HOURS} hours with price, liquidity, and rug score\\.`,
-    ].join("\n"),
-    { parse_mode: "MarkdownV2" }
-  );
+  const lines = [`👁 *${esc("AUSPEX — early signals for Solana & Base")}*`];
+  for (const [title, cmds] of HELP) {
+    lines.push("", `*${esc(title)}*`);
+    for (const [c, d] of cmds) lines.push(`${code(c)} — ${esc(d)}`);
+  }
+  lines.push("", esc(`$${config.PRICE_USD}/month. Accepts USDC on Base, USDC on Solana, or SOL. Site: ${config.AUSPEX_SITE_URL}`));
+  return reply(ctx, lines.join("\n"));
 });
 
-// ── /check 0x... ──────────────────────────────────────────────────────────
-// Works in groups and DMs — no registration required
+// ── /coin <CA> (and /check) ───────────────────────────────────────────────
 
-bot.command("check", async (ctx) => {
-  const text    = ctx.message.text;
-  const match   = text.match(/0x[a-fA-F0-9]{40}/);
-  const address = match ? match[0] : null;
-
-  if (!address) {
-    return ctx.reply(
-      "Usage: `/check 0x1234\.\.\.abcd`",
-      { parse_mode: "MarkdownV2" }
-    );
-  }
-
-  // Send typing indicator
-  ctx.sendChatAction("typing");
-
-  // Fetch all data in parallel
-  let token, safety, smartStats, poolAddress;
+async function sendChart(ctx, snapshot) {
+  if (!snapshot?.pairAddress || !["solana", "base"].includes(snapshot.chain)) return;
   try {
-    [token, safety, poolAddress] = await Promise.all([
-      fetchTokenData(address),
-      fetchSafety(address),
-      fetchTopPoolAddress(address),
+    const [hourly, daily] = await Promise.all([
+      fetchOHLCV(snapshot.pairAddress, "hour", 48, snapshot.chain),
+      fetchOHLCV(snapshot.pairAddress, "day", 30, snapshot.chain),
     ]);
+    if (!hourly.length && !daily.length) return;
+    const buf = await renderDualChart(hourly, daily, snapshot.symbol);
+    await ctx.replyWithPhoto({ source: buf, filename: `${snapshot.symbol}_chart.png` }, { caption: `$${snapshot.symbol} · hourly / daily` });
   } catch (err) {
-    return ctx.reply(`❌ ${err.message || "Token not found on Base"}`, {});
+    console.error("Chart render failed:", err.message);
   }
+}
 
-  const rugScore = calcRugScore(token);
-
-  // Fetch smart follows if Elfa configured + token has a twitter handle
-  // (Elfa smart follows on token addresses requires their token endpoint — use N/A for now)
-  const smartFollows = null;
-
-  // Build the caption
-  const changeArrow = token.changeUp ? "▲" : "▼";
-
-  function esc(str) {
-    if (!str) return "N/A";
-    return String(str).replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&");
-  }
-
-  const safetyLine = safety
-    ? `${safety.verdictEmoji} Safety: ${esc(String(safety.score))}/10 ${safety.verdict === "SAFE" ? "✅" : ""} \\| Buy: ${esc(safety.buyTax + "%")} Sell: ${esc(safety.sellTax + "%")}`
-    : `🛡 Safety: N/A`;
-
-  const smartLine = smartFollows !== null
-    ? `🧠 Smart follows: ${smartFollows}`
-    : "";
-
-  const caption = [
-    `*${esc(token.name)}* \($${esc(token.symbol)}\)`,
-    `\`${address}\``,
-    ``,
-    `💰 *Price:* \`${esc(token.price)}\``,
-    `💧 *Liq:* \`${esc(token.liquidity)}\` 📊 *MCap:* \`${esc(token.marketCap)}\``,
-    `🏷 *FDV:* \`${esc(token.fdv)}\``,
-    ``,
-    safetyLine,
-    smartLine,
-  ].filter(Boolean).join("\n");
-
-  // Build inline keyboard
-  const keyboard = {
+async function coinCommand(ctx) {
+  const found = extractAddress(ctx.message.text.replace(/^\/\S+/, ""));
+  if (!found) return reply(ctx, esc("Usage: ") + code("/coin <contract address>") + esc(" (Solana or Base)"));
+  ctx.sendChatAction("typing").catch(() => {});
+  const keyboard = (item) => ({
     inline_keyboard: [
-      [
-        { text: "📊 DexScreener", url: `https://dexscreener.com/base/${address}` },
-        { text: "🦎 GeckoTerminal", url: `https://www.geckoterminal.com/base/pools/${poolAddress || address}` },
-        { text: "🫧 BubbleMaps", url: `https://app.bubblemaps.io/base/token/${address}` },
-      ],
-      [
-        { text: "🤖 AI Analysis", callback_data: `analyze_${address}` },
-        { text: "📣 Make a Call", callback_data: `makecall_${address}` },
-      ],
+      [{ text: "🔎 View on Auspex", url: siteCoinUrl(config.AUSPEX_SITE_URL, item) }, { text: "📊 DexScreener", url: `https://dexscreener.com/${item.chain}/${item.address}` }],
+      [{ text: "🤖 AI Analysis", callback_data: `analyze_${item.address}` }, { text: "📣 Make a Call", callback_data: `makecall_${item.address}` }],
     ],
-  };
-
-  // Try to render chart — send as photo with caption
-  // Fall back to text-only if chart fails
-  try {
-    if (!poolAddress) throw new Error("No pool found");
-
-    ctx.sendChatAction("upload_photo");
-
-    const [hourlyCandles, dailyCandles] = await Promise.all([
-      fetchOHLCV(poolAddress, "hour", 48),
-      fetchOHLCV(poolAddress, "day", 30),
-    ]);
-
-    const chartBuf = await renderDualChart(hourlyCandles, dailyCandles, token.symbol);
-
-    await ctx.replyWithPhoto(
-      { source: chartBuf, filename: `${token.symbol}_chart.png` },
-      {
-        caption,
-        parse_mode:   "MarkdownV2",
-        reply_markup: keyboard,
-      }
-    );
-  } catch (chartErr) {
-    console.error("Chart render failed, sending text-only:", chartErr.message);
-    // Text-only fallback
-    await ctx.reply(caption, {
-      parse_mode:   "MarkdownV2",
-      reply_markup: keyboard,
-    });
+  });
+  let coin = null;
+  try { coin = await lookupCoin(found.address); } catch (e) { console.error("Auspex cache read failed:", e.message); }
+  if (coin && coin.items.length) {
+    const main = coin.items[0];
+    let hitRate = null;
+    try { hitRate = hitRateFor(await outcomes.getStats(), main); } catch { /* optional */ }
+    if (!main.signalPerf) { try { main.signalPerf = await outcomes.sinceSignal(main); } catch { /* optional */ } }
+    await reply(ctx, formatCoinCard(coin.items, { siteUrl: config.AUSPEX_SITE_URL, updatedAt: coin.updatedAt, hitRate }), { reply_markup: keyboard(main) });
+    if (["solana", "base"].includes(main.chain)) sendChart(ctx, await tokenSnapshot(main.address, { chain: main.chain }).catch(() => null));
+    return;
   }
-});
+  const scan = await scanAddress(found.address, { family: found.family });
+  if (!scan) return reply(ctx, esc("No DexScreener pair found on Solana or Base for this address — check it's correct, or it may be too new."));
+  await reply(ctx, formatScanCard(scan, { siteUrl: config.AUSPEX_SITE_URL }), { reply_markup: keyboard({ chain: scan.chain, address: found.address }) });
+  sendChart(ctx, { chain: scan.chain, pairAddress: scan.pair?.pairAddress, symbol: scan.pair?.baseToken?.symbol || "TOKEN" });
+}
+bot.command("coin", coinCommand);
+bot.command("check", coinCommand);
 
-// ── /check callback: AI Analysis ──────────────────────────────────────────
+// ── /coin callback: AI Analysis ───────────────────────────────────────────
 
 bot.action(/^analyze_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery("Analyzing...");
   const address = ctx.match[1];
-
-  let token;
-  try {
-    token = await fetchTokenData(address);
-  } catch {
-    return ctx.reply("❌ Could not fetch token data for analysis.");
-  }
-
-  const safety  = await fetchSafety(address);
-  const rugScore = calcRugScore(token);
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return ctx.reply("❌ AI Analysis requires ANTHROPIC\_API\_KEY to be configured.", {
-      parse_mode: "MarkdownV2",
-    });
-  }
-
-  ctx.sendChatAction("typing");
-
+  if (!process.env.ANTHROPIC_API_KEY) return reply(ctx, esc("❌ AI Analysis requires ANTHROPIC_API_KEY to be configured."));
+  const token = await tokenSnapshot(address).catch(() => null) || await tokenSnapshot(address, { chain: "base" }).catch(() => null);
+  if (!token) return ctx.reply("❌ Could not fetch token data for analysis.");
+  let item = null;
+  try { item = (await lookupCoin(address)).items[0] || null; } catch { /* optional */ }
+  const badges = item ? badgesFor(item).map((x) => x.text).join(", ") : "not on the Auspex board";
+  ctx.sendChatAction("typing").catch(() => {});
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type":      "application/json",
-        "x-api-key":         process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model:      "claude-sonnet-4-20250514",
+        model: config.ANTHROPIC_MODEL,
         max_tokens: 300,
-        system:     "You are a sharp crypto analyst. Write a 3-4 sentence analysis of this Base token. Be direct, data-driven, no hype, no disclaimers. Flag any red flags immediately. Speak like a trader.",
+        system: "You are a sharp crypto analyst. Write a 3-4 sentence analysis of this token. Be direct, data-driven, no hype, no disclaimers. Flag any red flags immediately. Speak like a trader.",
         messages: [{
           role: "user",
-          content: `Token: ${token.name} (${token.symbol}) on Base
-Price: ${token.price} | 24h Change: ${token.change}
-Volume: ${token.volume24h} | Liquidity: ${token.liquidity}
-Holders: ${token.holders} | MCap: ${token.marketCap} | FDV: ${token.fdv}
-Rug Score: ${rugScore}/100
-Safety: ${safety ? `${safety.score}/10 — ${safety.verdict} | Buy tax: ${safety.buyTax}% | Sell tax: ${safety.sellTax}% | Honeypot: ${safety.isHoneypot}` : "N/A"}
+          content: `Token: ${token.name} (${token.symbol}) on ${token.chain}
+Price: $${token.priceRaw} | 24h Change: ${pct(token.change24h)}
+Volume: ${compactUsd(token.volume24h)} | Liquidity: ${compactUsd(token.liquidityUsd)} | MCap: ${compactUsd(token.mcapUsd)}
+Auspex score: ${item?.score ?? "n/a"} | Auspex badges: ${badges}
 
 Write your analysis.`,
         }],
       }),
     });
-
-    const json     = await res.json();
+    const json = await res.json();
     const analysis = json?.content?.[0]?.text?.trim();
-
     if (!analysis) throw new Error("Empty response");
-
-    function esc(s) { return String(s || "").replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&"); }
-
-    await ctx.reply(
-      `🤖 *AI Analysis — ${esc(token.name)}*\n\n${esc(analysis)}`,
-      { parse_mode: "MarkdownV2" }
-    );
+    await reply(ctx, `🤖 *${esc("AI Analysis — " + token.name)}*\n\n${esc(analysis)}`);
   } catch (err) {
     console.error("AI analysis error:", err.message);
     await ctx.reply("❌ Analysis failed. Try again.");
   }
 });
 
-// ── /check callback: Make a Call ──────────────────────────────────────────
-
 bot.action(/^makecall_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
-  const address = ctx.match[1];
-  // Redirect them to use the /call command
-  await ctx.reply(
-    `To make a call on this token, send:
-\`/call ${address}\``,
-    { parse_mode: "MarkdownV2" }
-  );
+  await reply(ctx, esc("To make a call on this token, send:") + "\n" + code(`/call ${ctx.match[1]}`));
 });
 
-// ── /call 0x... ───────────────────────────────────────────────────────────
+// ── /call <CA> ────────────────────────────────────────────────────────────
 
 bot.command("call", async (ctx) => {
   const telegramId = ctx.from.id;
-
-  // Auto-register on first call if not already registered
-  const { supabase } = await import("./db.js");
-  const { data: callerCheck } = await supabase
-    .from("vigil_callers")
-    .select("is_registered")
-    .eq("telegram_id", String(telegramId))
-    .single();
-
+  const { data: callerCheck } = await supabase.from("vigil_callers").select("is_registered").eq("telegram_id", String(telegramId)).maybeSingle();
   if (!callerCheck?.is_registered) {
-    await supabase
-      .from("vigil_callers")
-      .upsert({
-        telegram_id:       String(telegramId),
-        telegram_username: ctx.from.username || null,
-        is_registered:     true,
-        registered_at:     new Date().toISOString(),
-        updated_at:        new Date().toISOString(),
-      }, { onConflict: "telegram_id" });
+    await supabase.from("vigil_callers").upsert({
+      telegram_id: String(telegramId), telegram_username: ctx.from.username || null, is_registered: true,
+      registered_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }, { onConflict: "telegram_id" });
   }
+  if (isCallOnCooldown(telegramId)) return reply(ctx, esc("⏳ Slow down — one call per minute."));
 
-  // Rate limit — 1 call per minute per user
-  if (isCallOnCooldown(telegramId)) {
-    return ctx.reply("⏳ Slow down — one call per minute\.", { parse_mode: "MarkdownV2" });
+  const found = extractAddress(ctx.message.text.replace(/^\/\S+/, ""));
+  if (!found) return reply(ctx, esc("❌ No valid address found.") + "\n\n" + esc("Usage: ") + code("/call <contract address>"));
+  const address = found.address;
+  if (await isDuplicateCall(telegramId, address)) {
+    return reply(ctx, esc("⚠️ You already called this token in the last 24h. Wait for the score before calling it again."));
   }
-
-  const text    = ctx.message.text;
-  const match   = text.match(/0x[a-fA-F0-9]{40}/);
-  const address = match ? match[0] : null;
-
-  if (!address) {
-    return ctx.reply("❌ No valid address found\.\n\nUsage: `/call 0x1234\.\.\.abcd`", { parse_mode: "MarkdownV2" });
-  }
-
-  // Duplicate call check — same token in last 24h
-  const duplicate = await isDuplicateCall(telegramId, address);
-  if (duplicate) {
-    return ctx.reply("⚠️ You already called this token in the last 24h\. Wait for the score before calling it again\.", { parse_mode: "MarkdownV2" });
-  }
-
-  // Fetch token data
-  let token;
-  try {
-    token = await fetchTokenData(address);
-  } catch (err) {
-    return ctx.reply(`❌ ${err.message || "Token not found"}\. Make sure this is a Base token\.`, { parse_mode: "MarkdownV2" });
-  }
-
-  if (!token.priceRaw || token.priceRaw <= 0) {
-    return ctx.reply("❌ Could not fetch a valid price for this token\. Try again later\.", { parse_mode: "MarkdownV2" });
-  }
-
-  const rugScore = calcRugScore(token);
+  const token = await tokenSnapshot(address, { chain: found.family === "evm" ? "base" : "solana" }).catch(() => null);
+  if (!token) return reply(ctx, esc("❌ Token not found on Solana or Base (DexScreener)."));
+  if (!token.priceRaw || token.priceRaw <= 0) return reply(ctx, esc("❌ Could not fetch a valid price for this token. Try again later."));
   setCallCooldown(telegramId);
+  if (ctx.from.username) refreshCallerElfaStats(telegramId, ctx.from.username).catch((err) => console.error("Elfa refresh error (non-fatal):", err.message));
 
-  // Refresh Elfa stats for this caller in background — non-blocking
-  // Uses their X username if available, falls back silently if not
-  if (ctx.from.username) {
-    refreshCallerElfaStats(telegramId, ctx.from.username).catch((err) => {
-      console.error("Elfa refresh error (non-fatal):", err.message);
-    });
-  }
-
-  // Record the call
   try {
     await recordCall({
-      telegramId,
-      telegramUsername: ctx.from.username,
-      tokenAddress:     address,
-      tokenName:        token.name,
-      tokenSymbol:      token.symbol,
-      priceAtCall:      token.priceRaw,
-      messageId:        ctx.message.message_id,
-      chatId:           ctx.chat.id,
+      telegramId, telegramUsername: ctx.from.username, tokenAddress: address, tokenName: token.name, tokenSymbol: token.symbol,
+      priceAtCall: token.priceRaw, messageId: ctx.message.message_id, chatId: ctx.chat.id,
     });
   } catch (err) {
     console.error("Failed to record call:", err.message);
-    return ctx.reply("❌ Failed to record call\. Try again\.", { parse_mode: "MarkdownV2" });
+    return reply(ctx, esc("❌ Failed to record call. Try again."));
   }
 
-  // Post call card to standard channel
-  const callCard = formatCallCard(token, { telegramId, username: ctx.from.username }, rugScore);
-  await bot.telegram.sendMessage(config.CHANNEL_ID, callCard, {
-    parse_mode: "MarkdownV2", disable_web_page_preview: true,
-  });
+  // Call card: market data + the same Auspex badges the site shows for this coin
+  let item = null;
+  try { item = (await lookupCoin(address)).items[0] || null; } catch { /* cache optional */ }
+  const callerTag = ctx.from.username ? `@${esc(ctx.from.username)}` : esc(`User ${telegramId}`);
+  const card = (eliteLine) => [
+    `📣 *${esc(`${eliteLine ? "ELITE " : ""}CALL — ${token.name} ($${token.symbol})`)}*`, ``,
+    `By: ${callerTag}` + (eliteLine ? " " + eliteLine : ""),
+    "💰 " + esc([`Entry $${Number(token.priceRaw).toPrecision(4)}`, `Liq ${compactUsd(token.liquidityUsd)}`, `Vol ${compactUsd(token.volume24h)}`, `24h ${pct(token.change24h)}`, token.chain].join(" · ")),
+    item ? (badgeLine(badgesFor(item)) || esc("No Auspex badges")) + esc(item.score != null ? `  · Auspex score ${item.score}` : "") : esc("Not on the Auspex board right now"),
+    ``, `[View on Auspex](${siteCoinUrl(config.AUSPEX_SITE_URL, { chain: token.chain, address })})`, code(address),
+  ].join("\n");
+  await bot.telegram.sendMessage(config.CHANNEL_ID, card(null), MD);
 
-  // If elite caller — also forward to elite channel with full stats
-  const elite = await isEliteCaller(telegramId);
+  const elite = config.ELITE_CHANNEL_ID ? await isEliteCaller(telegramId) : false;
   if (elite) {
-    const stats    = await getCallerStats(telegramId);
-    const eliteCard = formatEliteCallCard(
-      token,
-      { telegramId, username: ctx.from.username },
-      rugScore,
-      stats?.rank,
-      stats
-    );
-    await bot.telegram.sendMessage(config.ELITE_CHANNEL_ID, eliteCard, {
-      parse_mode: "MarkdownV2", disable_web_page_preview: true,
-    });
+    const stats = await getCallerStats(telegramId);
+    const winRate = stats?.scored_calls > 0 ? Math.round((stats.wins / stats.scored_calls) * 100) : 0;
+    await bot.telegram.sendMessage(config.ELITE_CHANNEL_ID, card(esc(`| Rank #${stats?.rank ?? "?"} | Win Rate ${winRate}% | Score ${stats?.composite_score ?? 0}/100`)), MD);
   }
-
-  // Acknowledge in DM/group
-  await ctx.reply(
-    `✅ Call recorded\: *${(token.name || "").replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}* at \`${(token.price || "").replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}\`\. Scored in 24h\.${elite ? " ⚡ Forwarded to elite channel\." : ""}`,
-    { parse_mode: "MarkdownV2" }
-  );
+  await reply(ctx, esc(`✅ Call recorded: ${token.name} at $${Number(token.priceRaw).toPrecision(4)}. Scored in 24h.${elite ? " ⚡ Forwarded to elite channel." : ""}`));
 });
 
-// ── /mystats ───────────────────────────────────────────────────────────────
+// ── /mystats, /leaderboard ────────────────────────────────────────────────
 
-bot.command("mystats", async (ctx) => {
-  const stats = await getCallerStats(ctx.from.id);
-  await ctx.reply(formatMyStats(stats, ctx.from.username), { parse_mode: "MarkdownV2" });
-});
+bot.command("mystats", async (ctx) => reply(ctx, formatMyStats(await getCallerStats(ctx.from.id), ctx.from.username)));
+bot.command("leaderboard", async (ctx) => reply(ctx, formatLeaderboard(await getLeaderboard(10))));
 
-// ── /leaderboard ───────────────────────────────────────────────────────────
-
-bot.command("leaderboard", async (ctx) => {
-  const callers = await getLeaderboard(10);
-  await ctx.reply(formatLeaderboard(callers), { parse_mode: "MarkdownV2" });
-});
-
-// ── /register ────────────────────────────────────────────────────────────────
+// ── /register ─────────────────────────────────────────────────────────────
 
 bot.command("register", async (ctx) => {
   const telegramId = ctx.from.id;
-
-  // Check if already registered
-  const { data: existing } = await (await import("./db.js")).supabase
-    .from("vigil_callers")
-    .select("is_registered, is_verified, telegram_username")
-    .eq("telegram_id", String(telegramId))
-    .single();
-
+  const { data: existing } = await supabase.from("vigil_callers").select("is_registered, is_verified").eq("telegram_id", String(telegramId)).maybeSingle();
   if (existing?.is_registered) {
-    const status = existing.is_verified ? "✓ Verified" : "Unverified";
-    return ctx.reply(
-      [
-        `✅ *Already registered\!*`,
-        ``,
-        `Status: \`${status}\``,
-        ``,
-        `_To get verified and appear on the public leaderboard, send \`/verify @yourxhandle\` \($20/month\)\._`,
-      ].join("\n"),
-      { parse_mode: "MarkdownV2" }
-    );
+    return reply(ctx, [
+      `✅ *${esc("Already registered!")}*`, ``,
+      `Status: ${code(existing.is_verified ? "✓ Verified" : "Unverified")}`, ``,
+      `_${esc("To get verified and appear on the public leaderboard, send /verify @yourxhandle ($20/month).")}_`,
+    ].join("\n"));
   }
-
-  // Create caller record
-  const { supabase } = await import("./db.js");
-  await supabase
-    .from("vigil_callers")
-    .upsert({
-      telegram_id:       String(telegramId),
-      telegram_username: ctx.from.username || null,
-      is_registered:     true,
-      registered_at:     new Date().toISOString(),
-      updated_at:        new Date().toISOString(),
-    }, { onConflict: "telegram_id" });
-
-  await ctx.reply(
-    [
-      `👁 *Welcome to Augur\!*`,
-      ``,
-      `You're registered as a caller\.`,
-      `Make calls with \`/call 0x\.\.\.\` — every call is scored at 24h\.`,
-      ``,
-      `*Want a public leaderboard profile?*`,
-      `Send \`/verify @yourxhandle\` to link your X handle and go live on \`augur\.gg\``,
-      ``,
-      `_Minimum 5 scored calls needed to appear in rankings\._`,
-    ].join("\n"),
-    { parse_mode: "MarkdownV2" }
-  );
+  await supabase.from("vigil_callers").upsert({
+    telegram_id: String(telegramId), telegram_username: ctx.from.username || null, is_registered: true,
+    registered_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }, { onConflict: "telegram_id" });
+  await reply(ctx, [
+    `👁 *${esc("Welcome to Auspex callers!")}*`, ``,
+    esc("You're registered as a caller."),
+    esc("Make calls with ") + code("/call <CA>") + esc(" — every call is scored at 24h."), ``,
+    `*${esc("Want a public leaderboard profile?")}*`,
+    esc("Send ") + code("/verify @yourxhandle") + esc(" to link your X handle."), ``,
+    `_${esc("Minimum 5 scored calls needed to appear in rankings.")}_`,
+  ].join("\n"));
 });
 
 // ── /verify @xhandle ──────────────────────────────────────────────────────
 
 bot.command("verify", async (ctx) => {
   const telegramId = ctx.from.id;
-  const args       = ctx.message.text.split(/\s+/).slice(1);
-  const xHandle    = args[0]?.replace(/^@/, "").toLowerCase();
-
-  if (!xHandle) {
-    return ctx.reply(
-      "Usage: `/verify @yourxhandle`\n\nCosts $20/month\\. Adds Elfa smart follower weighting and a public Augur profile\\.",
-      { parse_mode: "MarkdownV2" }
-    );
-  }
-
-  // Must be registered first
-  const { supabase } = await import("./db.js");
-  const { data: caller } = await supabase
-    .from("vigil_callers")
-    .select("is_registered, is_verified, x_username")
-    .eq("telegram_id", String(telegramId))
-    .single();
-
-  if (!caller?.is_registered) {
-    return ctx.reply("❌ You need to `/register` first\.", { parse_mode: "MarkdownV2" });
-  }
-
-  if (caller?.is_verified) {
-    const handle = (caller.x_username || xHandle).replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&");
-    return ctx.reply(`✅ Already verified as @${handle}\.`, { parse_mode: "MarkdownV2" });
-  }
-
-  // Show payment instructions for verification tier
-  const escHandle = xHandle.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&");
-  await ctx.reply(
-    [
-      `👁 *Verify @${escHandle}*`,
-      ``,
-      `Verification costs *$20/month*\.`,
-      ``,
-      `*Base \(USDC\)*`,
-      `\`${config.BASE_RECEIVE_ADDR || "Address not configured"}\``,
-      ``,
-      `*Solana \(USDC or SOL\)*`,
-      `\`${config.SOLANA_RECEIVE_ADDR || "Address not configured"}\``,
-      ``,
-      `After sending, reply with:`,
-      `\`/verifypaid ${escHandle} <txhash>\``,
-    ].join("\n"),
-    { parse_mode: "MarkdownV2" }
-  );
+  const xHandle = argsOf(ctx)[0]?.replace(/^@/, "").toLowerCase();
+  if (!xHandle) return reply(ctx, esc("Usage: ") + code("/verify @yourxhandle") + "\n\n" + esc("Costs $20/month. Adds a public caller profile."));
+  const { data: caller } = await supabase.from("vigil_callers").select("is_registered, is_verified, x_username").eq("telegram_id", String(telegramId)).maybeSingle();
+  if (!caller?.is_registered) return reply(ctx, esc("❌ You need to /register first."));
+  if (caller?.is_verified) return reply(ctx, esc(`✅ Already verified as @${caller.x_username || xHandle}.`));
+  await reply(ctx, [
+    `👁 *${esc(`Verify @${xHandle}`)}*`, ``,
+    `${esc("Verification costs")} *${esc("$20/month")}*${esc(".")}`, ``,
+    `*${esc("Base (USDC)")}*`, code(config.BASE_RECEIVE_ADDR || "Address not configured"), ``,
+    `*${esc("Solana (USDC or SOL)")}*`, code(config.SOLANA_RECEIVE_ADDR || "Address not configured"), ``,
+    esc("After sending, reply with:"), code(`/verifypaid ${xHandle} <txhash>`),
+  ].join("\n"));
 });
 
-// ── /verifypaid @xhandle <txhash> ────────────────────────────────────────
+// ── /verifypaid @xhandle <txhash> ─────────────────────────────────────────
 
 bot.command("verifypaid", async (ctx) => {
   const telegramId = ctx.from.id;
-  const parts      = ctx.message.text.split(/\s+/).slice(1);
-  const xHandle    = parts[0]?.replace(/^@/, "").toLowerCase();
-  const txHash     = parts[1]?.trim();
-
-  if (!xHandle || !txHash) {
-    return ctx.reply(
-      "Usage: `/verifypaid @xhandle <txhash>`",
-      { parse_mode: "MarkdownV2" }
-    );
-  }
-
-  const verifyMsg = await ctx.reply("🔍 Verifying payment\.\.\.", { parse_mode: "MarkdownV2" });
-
+  const [h, t] = argsOf(ctx);
+  const xHandle = h?.replace(/^@/, "").toLowerCase();
+  const txHash = t?.trim();
+  if (!xHandle || !txHash) return reply(ctx, esc("Usage: ") + code("/verifypaid @xhandle <txhash>"));
+  const edit = (text) => ctx.telegram.editMessageText(ctx.chat.id, verifyMsg.message_id, undefined, text, MD);
+  const verifyMsg = await reply(ctx, esc("🔍 Verifying payment..."));
+  if (await txAlreadyUsed(txHash)) return edit(esc("❌ This transaction has already been used."));
   let paymentResult;
-  try {
-    if (txHash.startsWith("0x")) {
-      paymentResult = await verifyBaseUSDC(txHash);
-    } else {
-      paymentResult = await verifySolanaPayment(txHash);
-    }
-  } catch (err) {
-    await ctx.telegram.editMessageText(ctx.chat.id, verifyMsg.message_id, undefined,
-      `❌ ${err.message.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}`,
-      { parse_mode: "MarkdownV2" }
-    );
-    return;
-  }
-
-  // Minimum $18 for verify tier (allow slight slippage from $20)
-  if (paymentResult.amountUsd < 18) {
-    await ctx.telegram.editMessageText(ctx.chat.id, verifyMsg.message_id, undefined,
-      `❌ Insufficient payment: received $${paymentResult.amountUsd.toFixed(2)}\. Verification requires $20\.`,
-      { parse_mode: "MarkdownV2" }
-    );
-    return;
-  }
-
-  // Mark as verified and store X handle
-  const { supabase } = await import("./db.js");
-  await supabase
-    .from("vigil_callers")
-    .update({
-      is_verified:    true,
-      x_username:     xHandle,
-      verify_paid_at: new Date().toISOString(),
-      updated_at:     new Date().toISOString(),
-    })
-    .eq("telegram_id", String(telegramId));
-
-  // Trigger Elfa stats fetch for the verified X handle
+  try { paymentResult = await verifyPayment(txHash); } catch (err) { return edit(esc(`❌ ${err.message}`)); }
+  if (paymentResult.amountUsd < 18) return edit(esc(`❌ Insufficient payment: received $${paymentResult.amountUsd.toFixed(2)}. Verification requires $20.`));
+  const claimed = await claimPayment({ telegramId, chain: paymentResult.chain, fromAddress: paymentResult.fromAddress, amountUsd: paymentResult.amountUsd, txHash }).catch(() => null);
+  if (!claimed) return edit(esc("❌ This transaction has already been used (or could not be recorded)."));
+  await supabase.from("vigil_callers").update({
+    is_verified: true, x_username: xHandle, verify_paid_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).eq("telegram_id", String(telegramId));
   refreshCallerElfaStats(telegramId, xHandle).catch(() => {});
-
-  const escHandle = xHandle.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&");
-  await ctx.telegram.editMessageText(ctx.chat.id, verifyMsg.message_id, undefined,
-    [
-      `✅ *Verified\!*`,
-      ``,
-      `Your X handle \`@${escHandle}\` is now linked\.`,
-      `Your profile is live at: \`augur\.gg/@${escHandle}\``,
-      ``,
-      `_Smart follower weighting will apply to your next ranking update\._`,
-    ].join("\n"),
-    { parse_mode: "MarkdownV2" }
-  );
+  await edit([`✅ *${esc("Verified!")}*`, ``, esc("Your X handle ") + code(`@${xHandle}`) + esc(" is now linked."), ``,
+    `_${esc("Your profile appears on the leaderboard once you have 5 scored calls.")}_`].join("\n"));
 });
 
-// ── /addaccount @handle ───────────────────────────────────────────────────
+// ── /addaccount, /removeaccount, /watchlist (owner only) ──────────────────
+// Previously these were open to everyone when OWNER_TELEGRAM_ID was unset; now they require it.
 
-bot.command("addaccount", async (ctx) => {
-  // Owner-only command — only the bot owner (you) can add accounts
-  const ownerId = process.env.OWNER_TELEGRAM_ID;
-  if (ownerId && String(ctx.from.id) !== String(ownerId)) {
-    return ctx.reply("❌ Only the bot owner can add watched accounts\.", { parse_mode: "MarkdownV2" });
-  }
+const ownerOnly = (handler) => async (ctx) => {
+  if (!isOwner(ctx.from.id)) return reply(ctx, esc("❌ Owner only (set OWNER_TELEGRAM_ID)."));
+  return handler(ctx);
+};
 
-  const args   = ctx.message.text.split(/\s+/).slice(1);
-  const handle = args[0]?.replace(/^@/, "");
-
-  if (!handle) {
-    return ctx.reply("Usage: `/addaccount @handle`", { parse_mode: "MarkdownV2" });
-  }
-
-  const msg = await ctx.reply(`🔍 Adding @${handle.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}\.\.\. resolving account\.`, { parse_mode: "MarkdownV2" });
-
+bot.command("addaccount", ownerOnly(async (ctx) => {
+  const handle = argsOf(ctx)[0]?.replace(/^@/, "");
+  if (!handle) return reply(ctx, esc("Usage: ") + code("/addaccount @handle"));
+  const msg = await reply(ctx, esc(`🔍 Adding @${handle}... resolving account.`));
   try {
     const result = await addWatchedAccount(handle, ctx.from.id);
     await ctx.telegram.editMessageText(ctx.chat.id, msg.message_id, undefined,
-      `✅ Now watching *${result.displayName.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}* \(@${result.handle}\)\.
-
-_Seeding initial following list — new follows will be alerted from now on\._`,
-      { parse_mode: "MarkdownV2" }
-    );
+      esc(`✅ Now watching ${result.displayName} (@${result.handle}).`) + "\n\n_" + esc("Seeding initial following list — new follows will be alerted from now on.") + "_", MD);
   } catch (err) {
-    await ctx.telegram.editMessageText(ctx.chat.id, msg.message_id, undefined,
-      `❌ ${err.message.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}`,
-      { parse_mode: "MarkdownV2" }
-    );
+    await ctx.telegram.editMessageText(ctx.chat.id, msg.message_id, undefined, esc(`❌ ${err.message}`), MD);
   }
-});
+}));
 
-// ── /removeaccount @handle ────────────────────────────────────────────────
-
-bot.command("removeaccount", async (ctx) => {
-  const ownerId = process.env.OWNER_TELEGRAM_ID;
-  if (ownerId && String(ctx.from.id) !== String(ownerId)) {
-    return ctx.reply("❌ Only the bot owner can remove watched accounts\.", { parse_mode: "MarkdownV2" });
-  }
-
-  const args   = ctx.message.text.split(/\s+/).slice(1);
-  const handle = args[0]?.replace(/^@/, "");
-
-  if (!handle) {
-    return ctx.reply("Usage: `/removeaccount @handle`", { parse_mode: "MarkdownV2" });
-  }
-
+bot.command("removeaccount", ownerOnly(async (ctx) => {
+  const handle = argsOf(ctx)[0]?.replace(/^@/, "");
+  if (!handle) return reply(ctx, esc("Usage: ") + code("/removeaccount @handle"));
   try {
     await removeWatchedAccount(handle);
-    await ctx.reply(`✅ Stopped watching @${handle.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}\.`, { parse_mode: "MarkdownV2" });
+    await reply(ctx, esc(`✅ Stopped watching @${handle}.`));
   } catch (err) {
-    await ctx.reply(`❌ ${err.message.replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&")}`, { parse_mode: "MarkdownV2" });
+    await reply(ctx, esc(`❌ ${err.message}`));
   }
+}));
+
+bot.command("watchlist", ownerOnly(async (ctx) => {
+  const accounts = await getWatchedAccounts();
+  if (!accounts.length) return reply(ctx, `👁 *X Watchlist*\n\n_${esc("No accounts being watched yet.")}_\n\n${esc("Add one with ")}${code("/addaccount @handle")}`);
+  await reply(ctx, [
+    "👁 *X Watchlist*", `_${esc(`${accounts.length} account${accounts.length === 1 ? "" : "s"} being monitored`)}_`, "",
+    ...accounts.map((a, i) => esc(`${i + 1}. ${a.display_name || a.handle} (@${a.handle})`)), "",
+    `_${esc("Polls every 15 minutes for new follows.")}_`,
+  ].join("\n"));
+}));
+
+// ── Auspex feed commands (same data as the site) ──────────────────────────
+
+async function withCache(ctx, fn) {
+  try {
+    const cache = await auspexData.getSignalCache();
+    return await fn(cache);
+  } catch (e) {
+    console.error("Auspex cache read failed:", e.message);
+    return reply(ctx, esc("⚠️ Couldn't read the Auspex signal cache right now. Try again in a minute."));
+  }
+}
+
+bot.command("feed", (ctx) => withCache(ctx, ({ payload, updatedAt }) => {
+  const arg = (argsOf(ctx)[0] || "").toLowerCase();
+  const chain = arg === "sol" ? "solana" : ["solana", "base"].includes(arg) ? arg : null;
+  const items = signalItems(payload).filter((it) => chain || ["solana", "base"].includes(it.chain));
+  return reply(ctx, formatFeed(payload, { chain, limit: 5, updatedAt, items }));
+}));
+
+bot.command("launches", (ctx) => withCache(ctx, ({ payload }) =>
+  reply(ctx, formatItemList("🚀 JUST LAUNCHED (pump.fun / LetsBonk)", launchItems(payload), { limit: 10, empty: "Waiting for the next launch." }))));
+
+bot.command("grads", (ctx) => withCache(ctx, ({ payload }) =>
+  reply(ctx, formatItemList("🎓 JUST GRADUATED", graduationItems(payload), { limit: 10, empty: "No graduations in the cache yet." }))));
+
+bot.command("perf", async (ctx) => {
+  const by = (argsOf(ctx)[0] || "kind").toLowerCase();
+  try { await reply(ctx, formatPerf(await outcomes.getStats(), { by })); } catch (e) { await reply(ctx, esc(`⚠️ ${e.message}`)); }
 });
 
-// ── /watchlist ────────────────────────────────────────────────────────────
+bot.command("paper", async (ctx) => {
+  try { await reply(ctx, formatPaper(await auspexData.getPaperTrades(30))); } catch (e) { await reply(ctx, esc(`⚠️ ${e.message}`)); }
+});
 
-bot.command("watchlist", async (ctx) => {
-  const ownerId = process.env.OWNER_TELEGRAM_ID;
-  if (ownerId && String(ctx.from.id) !== String(ownerId)) {
-    return ctx.reply("❌ Only the bot owner can view the watchlist\.", { parse_mode: "MarkdownV2" });
-  }
+bot.command("hof", async (ctx) => {
+  try { await reply(ctx, formatHallOfFame(await auspexData.getHallOfFame(20))); } catch (e) { await reply(ctx, esc(`⚠️ ${e.message}`)); }
+});
 
-  const accounts = await getWatchedAccounts();
+// ── Alerts ────────────────────────────────────────────────────────────────
 
-  if (accounts.length === 0) {
-    return ctx.reply(
-      "👁 *X Watchlist*\n\n_No accounts being watched yet\._\n\nAdd one with `/addaccount @handle`",
-      { parse_mode: "MarkdownV2" }
-    );
-  }
+const alertStore = createSupabaseStore(supabase);
+const allowCache = new Map(); // userId -> { ok, at }
 
+async function userMayUseAlerts(userId) {
+  if (isOwner(userId) || !config.ALERTS_REQUIRE_SUBSCRIPTION) return true;
+  const c = allowCache.get(String(userId));
+  if (c && Date.now() - c.at < 10 * 60_000) return c.ok;
+  const ok = await isSubscribed(userId).catch(() => false);
+  allowCache.set(String(userId), { ok, at: Date.now() });
+  return ok;
+}
+
+async function mayConfigure(ctx) {
+  if (ctx.chat.type === "private") return true;
+  if (isOwner(ctx.from.id)) return true;
+  const m = await ctx.telegram.getChatMember(ctx.chat.id, ctx.from.id).catch(() => null);
+  return m && ["creator", "administrator"].includes(m.status);
+}
+
+const engine = createAlertEngine({
+  data: auspexData, outcomes, store: alertStore, telegram: bot.telegram, siteUrl: config.AUSPEX_SITE_URL,
+  isChatAllowed: (rule) => userMayUseAlerts(rule.createdBy || rule.chatId), options: { pollMs: config.ALERT_POLL_MS, debug: /^(1|true)$/i.test(process.env.ALERTS_DEBUG || "") },
+});
+
+async function alertsStatusText(rule) {
+  const stats = await outcomes.getStats().catch(() => ({ available: false, reason: "error" }));
+  const f = normalizeFilters(rule?.filters || DEFAULT_FILTERS);
   const lines = [
-    "👁 *X Watchlist*",
-    `_${accounts.length} account${accounts.length === 1 ? "" : "s"} being monitored_`,
-    "",
-    ...accounts.map((a, i) => {
-      const name = (a.display_name || a.handle).replace(/[_*[\]()~\`>#+=|{}.!\\-]/g, "\\$&");
-      return `${i + 1}\. *${name}* \(@${a.handle}\)`;
-    }),
-    "",
-    "_Polls every 15 minutes for new follows\._",
+    `🔔 *${esc("Auspex alerts: " + (rule?.enabled ? "ON" : "OFF"))}*`, "",
+    ...describeFilters(f).map((l) => esc("• " + l)), "",
+    esc(`Signal performance: ${stats.available ? `${stats.counted} signals in the last ${stats.windowDays}d (${stats.source === "payload" ? "worker aggregate" : "auspex_signal_outcomes"}) — hit rate = +50% before −50%, by score band (signals) or kind (launches/grads)` : "not available yet — hit-rate filters are skipped"}`),
+    esc(`One alert per coin per chat per 24h. Store: ${alertStore.kind}.`),
+    esc(`Engine: ${engine.stats.sent} sent · held back: ${engine.stats.suppressed.duplicate} duplicate, ${engine.stats.suppressed.rate_limited} rate-limited${engine.stats.lastTickAt ? "" : " · not polled yet"}`), "",
+    esc("Change with ") + code("/filter <key> <value>") + esc(" — see /help."),
   ];
+  return lines.join("\n");
+}
 
-  await ctx.reply(lines.join("\n"), { parse_mode: "MarkdownV2" });
+bot.command("alerts", async (ctx) => {
+  const sub = (argsOf(ctx)[0] || "").toLowerCase();
+  const chatId = String(ctx.chat.id);
+  let rule = await alertStore.getRule(chatId);
+  if (sub === "on" || sub === "off") {
+    if (!(await mayConfigure(ctx))) return reply(ctx, esc("❌ Only group admins can change alerts here."));
+    if (sub === "on" && !(await userMayUseAlerts(ctx.from.id))) return reply(ctx, esc("🔒 Alerts are for subscribers. Send /start to subscribe."));
+    rule = await alertStore.saveRule({ chatId, enabled: sub === "on", filters: rule?.filters || DEFAULT_FILTERS, createdBy: String(ctx.from.id), chatTitle: ctx.chat.title || ctx.from.username || null });
+    if (sub === "on") {
+      let primed = 0;
+      try { primed = await engine.prime(chatId, rule.filters); } catch (e) { console.error("prime failed:", e.message); }
+      await reply(ctx, (await alertsStatusText(rule)) + "\n\n" + esc(`${primed} coin(s) match right now — use /feed to see them. You'll be alerted on new matches.`));
+      return;
+    }
+  }
+  return reply(ctx, await alertsStatusText(rule));
+});
+bot.command("filters", async (ctx) => reply(ctx, await alertsStatusText(await alertStore.getRule(String(ctx.chat.id)))));
+
+bot.command("filter", async (ctx) => {
+  const [key, ...rest] = argsOf(ctx);
+  if (!key) return reply(ctx, esc("Usage: ") + code("/filter <key> <value>") + "\n" + esc("Keys: score, chains, kinds, dev, rugsafe, liq, providers, exclude, include, hitrate, rate, reset"));
+  if (!(await mayConfigure(ctx))) return reply(ctx, esc("❌ Only group admins can change alerts here."));
+  const chatId = String(ctx.chat.id);
+  const rule = (await alertStore.getRule(chatId)) || { chatId, enabled: false, filters: DEFAULT_FILTERS, createdBy: String(ctx.from.id) };
+  const r = applyFilterCommand(rule.filters, key, rest.join(" "));
+  if (r.error) return reply(ctx, esc("❌ " + r.error));
+  const saved = await alertStore.saveRule({ ...rule, filters: r.filters, createdBy: rule.createdBy || String(ctx.from.id) });
+  if (saved.enabled) { try { await engine.prime(chatId, saved.filters); } catch { /* best effort */ } }
+  return reply(ctx, esc("✅ " + r.message) + "\n\n" + (await alertsStatusText(saved)));
 });
 
 // ── Error handler ─────────────────────────────────────────────────────────
@@ -816,29 +544,29 @@ bot.catch((err, ctx) => {
 
 // ── Launch ────────────────────────────────────────────────────────────────
 
-console.log("👁  Auspex starting...");
+console.log("👁  Auspex bot starting...");
 console.log(`   Price:    $${config.PRICE_USD}/month`);
-console.log(`   Channel:  ${config.CHANNEL_ID}`);
-console.log(`   RPC:      ${config.ALCHEMY_BASE_URL.includes("alchemy") ? "Alchemy" : "Public"}`);
-console.log(`   Helius:   ${config.HELIUS_API_KEY ? "configured" : "not set (public RPC)"}`);
-console.log(`   AI:       ${process.env.ANTHROPIC_API_KEY ? "enabled (all 4 agents)" : "disabled (set ANTHROPIC_API_KEY)"}`);
-console.log(`   Elite:    ${config.ELITE_CHANNEL_ID}`);
-console.log(`   Follow:   ${process.env.FOLLOW_CHANNEL_ID || "not set"}`);
-console.log(`   X API:    ${process.env.X_BEARER_TOKEN ? "configured" : "not set (Nitter fallback only)"}`);
-console.log(`   Elfa:     ${process.env.ELFA_API_KEY ? "configured" : "not set (get free key at elfa.ai/api)"}`);
-console.log(`   SmartCall:${process.env.SOURCE_CHAT_IDS ? ` monitoring ${process.env.SOURCE_CHAT_IDS.split(",").length} source group(s) — threshold ≥${process.env.SMART_FOLLOWER_THRESHOLD ?? 10}` : " SOURCE_CHAT_IDS not set"}`);
+console.log(`   Telegram: ${config.TELEGRAM_API_ROOT === "https://api.telegram.org" ? "api.telegram.org" : "custom API root (test/mock)"}`);
+console.log(`   Supabase: key role ${config.SUPABASE_KEY_ROLE}${config.SUPABASE_KEY_ROLE === "anon" ? " ⚠ use SUPABASE_SERVICE_KEY (see migrations/003)" : ""}`);
+console.log(`   Auspex:   cache at ${config.AUSPEX_SUPABASE_URL === config.SUPABASE_URL ? "same project as bot tables" : "separate project"}; site ${config.AUSPEX_SITE_URL}`);
+console.log(`   Alerts:   ${config.ALERTS_ENABLED ? `on (poll ${config.ALERT_POLL_MS / 1000}s, subscription ${config.ALERTS_REQUIRE_SUBSCRIPTION ? "required" : "not required"})` : "off"}`);
+console.log(`   AI:       ${process.env.ANTHROPIC_API_KEY ? `enabled (${config.ANTHROPIC_MODEL})` : "disabled (set ANTHROPIC_API_KEY)"}`);
+console.log(`   Elite:    ${config.ELITE_CHANNEL_ID || "not set"}`);
+console.log(`   X API:    ${process.env.X_BEARER_TOKEN ? "configured" : "not set"}; Nitter fallback ${config.NITTER_FALLBACK ? "on" : "off"}`);
 
-// Start crons
-startSmartCallWatcher(bot);
-startAutoPost(bot);
-startAccessCron(bot);
-startAnomalyWatcher(bot);
-startDailyDigest(bot);
-startRankingCrons(bot);
-startFollowWatcher(bot);
+if (!/^(1|true)$/i.test(process.env.DISABLE_CRONS || "")) {
+  startSmartCallWatcher(bot);
+  startAutoPost(bot);
+  startAccessCron(bot);
+  startAnomalyWatcher(bot);
+  startDailyDigest(bot);
+  startRankingCrons(bot);
+  startFollowWatcher(bot);
+}
+if (config.ALERTS_ENABLED) engine.start();
 
-// Launch bot
 bot.launch({ allowedUpdates: ["message", "callback_query"] });
 
-process.once("SIGINT",  () => { console.log("Shutting down..."); bot.stop("SIGINT"); });
-process.once("SIGTERM", () => { console.log("Shutting down..."); bot.stop("SIGTERM"); });
+const shutdown = (sig) => { console.log("Shutting down..."); engine.stop(); bot.stop(sig); };
+process.once("SIGINT", () => shutdown("SIGINT"));
+process.once("SIGTERM", () => shutdown("SIGTERM"));

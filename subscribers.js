@@ -41,33 +41,42 @@ export async function grantSubscription({ telegramId, telegramUsername, chain, t
 }
 
 /**
- * Log a raw detected payment (before it's linked to a user).
+ * Atomically claim a payment tx for one Telegram user. vigil_payments.tx_hash is UNIQUE, so the first
+ * claim wins and any replay (same tx for another user, or for /paid and /verifypaid) is refused.
+ * Previously logPayment was never called and txAlreadyUsed only looked at vigil_subscribers.paid_tx,
+ * which is overwritten on renewal — so an old tx could be reused. Returns true if this call claimed it.
  */
-export async function logPayment({ chain, fromAddress, toAddress, amountUsd, txHash }) {
+export async function claimPayment({ telegramId, chain, fromAddress, toAddress, amountUsd, txHash }) {
   const { error } = await supabase
     .from("vigil_payments")
-    .upsert({
+    .insert({
       chain,
-      from_address: fromAddress,
-      to_address:   toAddress,
+      from_address: fromAddress || null,
+      to_address:   toAddress || null,
       amount_usd:   amountUsd,
       tx_hash:      txHash,
+      telegram_id:  String(telegramId),
       detected_at:  new Date().toISOString(),
-    }, { onConflict: "tx_hash" });
+    });
+  if (!error) return true;
+  if (error.code === "23505" || /duplicate key/i.test(error.message || "")) return false;
+  throw new Error(`Failed to record payment: ${error.message}`);
+}
 
-  if (error) console.error("Failed to log payment:", error.message);
+/** Back-compat alias kept for callers outside this repo. */
+export async function logPayment(p) {
+  try { await claimPayment(p); } catch (e) { console.error("Failed to log payment:", e.message); }
 }
 
 /**
- * Check if a tx hash has already been used to grant a subscription.
+ * Check if a tx hash has already been used (payments ledger or a subscriber's latest paid_tx).
  */
 export async function txAlreadyUsed(txHash) {
-  const { data } = await supabase
-    .from("vigil_subscribers")
-    .select("telegram_id")
-    .eq("paid_tx", txHash)
-    .single();
-  return Boolean(data);
+  const [{ data: pay }, { data: sub }] = await Promise.all([
+    supabase.from("vigil_payments").select("tx_hash").eq("tx_hash", txHash).limit(1),
+    supabase.from("vigil_subscribers").select("telegram_id").eq("paid_tx", txHash).limit(1),
+  ]);
+  return Boolean((pay && pay.length) || (sub && sub.length));
 }
 
 /**

@@ -20,8 +20,15 @@ const ELFA_BASE = "https://api.elfa.ai";
 const statsCache = new Map(); // username → { data, cachedAt }
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
-export function elfaAvailable() {
-  return Boolean(process.env.ELFA_API_KEY);
+// Elfa retired GET /v2/account/smart-stats on 28 Oct 2026 (docs.elfa.ai changelog 2.7.0). After that date
+// the client reports itself unavailable instead of turning every lookup into "0 smart followers" (which
+// made the smart-call watcher drop every call). Set ELFA_FORCE=1 to keep calling it anyway.
+export const ELFA_SMART_STATS_REMOVED_AT = Date.parse("2026-10-28T00:00:00Z");
+
+export function elfaAvailable(now = Date.now()) {
+  if (!process.env.ELFA_API_KEY) return false;
+  if (now >= ELFA_SMART_STATS_REMOVED_AT && !/^(1|true)$/i.test(process.env.ELFA_FORCE || "")) return false;
+  return true;
 }
 
 /**
@@ -84,8 +91,10 @@ export async function getSmartStats(username) {
 
     const smartFollowerCount = d.smartFollowerCount ?? d.smart_follower_count ?? 0;
     const followerCount      = d.followerCount      ?? d.follower_count      ?? 0;
-    const engagementRate     = d.engagementRate     ?? d.engagement_rate     ?? 0;
-    const reach              = d.reach              ?? 0;
+    // The API returns averageEngagement / averageReach; the old code read engagementRate / reach, which
+    // don't exist, so two thirds of the derived score were always 0.
+    const engagementRate     = d.averageEngagement  ?? d.engagementRate      ?? d.engagement_rate ?? 0;
+    const reach              = d.averageReach       ?? d.reach               ?? 0;
 
     // Derive a 0-100 smart score from the raw data
     // Weighted: smart followers (60%) + engagement rate (25%) + reach (15%)

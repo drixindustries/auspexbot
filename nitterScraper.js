@@ -68,12 +68,9 @@ function parseFollowingHtml(html) {
   // Match each profile card block
   // Nitter profile cards look like:
   // <div class="timeline-item"> ... <a href="/username"> ... </div>
-  const cardPattern = /<div class="(?:timeline-item|profile-card)"[^>]*>([\s\S]*?)<\/div>\s*(?=<div class="(?:timeline-item|profile-card)|<\/div>)/g;
 
   // Simpler approach: extract all href="/username" patterns and associated data
   // Find all account links on the following page
-  const usernamePattern = /href="\/([A-Za-z0-9_]{1,50})"[^>]*class="[^"]*(?:username|fullname)[^"]*"/g;
-  const altUsernamePattern = /class="[^"]*(?:username|fullname)[^"]*"[^>]*href="\/([A-Za-z0-9_]{1,50})"/g;
 
   const seen = new Set();
 

@@ -31,7 +31,6 @@ export async function fetchSafety(tokenAddress) {
     const isMintable    = d.is_mintable    === "1";
     const canTakeBack   = d.can_take_back_ownership === "1";
     const ownerPercent  = parseFloat(d.owner_percent ?? 0) * 100;
-    const creatorPercent = parseFloat(d.creator_percent ?? 0) * 100;
 
     // LP lock info
     const lpHolders    = d.lp_holders || [];

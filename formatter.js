@@ -52,7 +52,7 @@ export function formatTokenCard(token, index = null) {
 export function formatTrendingPost(tokens) {
   const now    = new Date().toUTCString().replace(/:\d\d GMT/, " UTC");
   const aiTag  = tokens.some((t) => t.commentary) ? " ✦ AI" : "";
-  const header = `👁 *VIGIL — BASE TRENDING${escMd(aiTag)}*\n_${escMd(now)}_\n`;
+  const header = `👁 *AUSPEX — BASE TRENDING${escMd(aiTag)}*\n_${escMd(now)}_\n`;
   const cards  = tokens.map((t, i) => formatTokenCard(t, i + 1)).join("\n\n─────────────────\n\n");
   return `${header}\n${cards}`;
 }
@@ -62,7 +62,7 @@ export function formatTrendingPost(tokens) {
  */
 export function formatPaymentMessage(baseAddr, solAddr, price) {
   return [
-    `👁 *VIGIL — Subscribe*`,
+    `👁 *AUSPEX — Subscribe*`,
     ``,
     `Get access to the private channel for *$${price}/month*\\.`,
     `Accepts USDC on Base, USDC on Solana, or SOL\\.`,
@@ -92,7 +92,7 @@ export function formatSubConfirmed(expiresAt, channelLink) {
     ``,
     `👉 [Join the channel](${channelLink})`,
     ``,
-    `_The bot posts top Base tokens every 4 hours with AI commentary\\._`,
+    `_The channel gets the top Auspex signals every 4 hours, and you can set personal alerts with /alerts\\._`,
   ].join("\n");
 }
 

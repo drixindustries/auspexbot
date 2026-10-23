@@ -59,7 +59,7 @@ export function startAccessCron(bot) {
         try {
           await bot.telegram.sendMessage(
             sub.telegram_id,
-            "⏰ Your Vigil subscription has expired\\. Send `/start` to renew\\.",
+            "⏰ Your Auspex subscription has expired\\. Send `/start` to renew\\.",
             { parse_mode: "MarkdownV2" }
           );
         } catch {
