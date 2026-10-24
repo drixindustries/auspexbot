@@ -125,11 +125,11 @@ bot.command("status", async (ctx) => {
 
 const HELP = [
   ["Auspex feed (same data as the site)", [
-    ["/feed [solana|base]", "top signals with badges"],
+    ["/feed [solana|robinhood]", "top signals with badges"],
     ["/coin <CA>", "full badges for any coin (alias /check; works in groups)"],
     ["/launches", "recent pump.fun / LetsBonk launches"],
     ["/grads", "recent graduations"],
-    ["/early", "bonding-curve scanner: EARLY SIGNAL, FINAL STRETCH, about to graduate, early paper stats"],
+    ["/early [solana|robinhood]", "bonding-curve scanner: EARLY SIGNAL, FINAL STRETCH, about to graduate, early paper stats (one chain or both)"],
     ["/paper", "paper-trading results"],
     ["/hof", "Hall of Fame"],
     ["/perf [kind|score|source|badge|chain]", "signal performance: hit rates and returns since signal"],
@@ -137,10 +137,10 @@ const HELP = [
   ["Alerts", [
     ["/alerts on|off", "DM / group alerts for coins matching your filters"],
     ["/alerts", "show your filters"],
-    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds early,graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5; early: early_score 60, mcap 4k-15k, bundle 4, sniper 20, top10 30, buyers 20, first10 7, smart on, arms early|stretch; reset"],
+    ["/filter <key> <value>", "e.g. score 70, chains solana|robinhood|all, kinds early,graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5; early: early_score 60, mcap 4k-15k, bundle 4, sniper 20, top10 30, buyers 20, first10 7, smart on, arms early|stretch; reset"],
   ]],
   ["Callers", [
-    ["/call <CA>", "submit a tracked call (Solana or Base), scored at 24h"],
+    ["/call <CA>", "submit a tracked call (Solana or Robinhood Chain), scored at 24h"],
     ["/mystats", "your caller stats and rank"],
     ["/leaderboard", "top 10 callers"],
     ["/register", "create a free caller account"],
@@ -154,7 +154,7 @@ const HELP = [
 ];
 
 bot.help((ctx) => {
-  const lines = [`👁 *${esc("AUSPEX — early signals for Solana & Base")}*`];
+  const lines = [`👁 *${esc("AUSPEX — early signals for Solana & Robinhood Chain")}*`];
   for (const [title, cmds] of HELP) {
     lines.push("", `*${esc(title)}*`);
     for (const [c, d] of cmds) lines.push(`${code(c)} — ${esc(d)}`);
@@ -166,7 +166,7 @@ bot.help((ctx) => {
 // ── /coin <CA> (and /check) ───────────────────────────────────────────────
 
 async function sendChart(ctx, snapshot) {
-  if (!snapshot?.pairAddress || !["solana", "base"].includes(snapshot.chain)) return;
+  if (!snapshot?.pairAddress || !["solana", "robinhood"].includes(snapshot.chain)) return;
   try {
     const [hourly, daily] = await Promise.all([
       fetchOHLCV(snapshot.pairAddress, "hour", 48, snapshot.chain),
@@ -182,7 +182,7 @@ async function sendChart(ctx, snapshot) {
 
 async function coinCommand(ctx) {
   const found = extractAddress(ctx.message.text.replace(/^\/\S+/, ""));
-  if (!found) return reply(ctx, esc("Usage: ") + code("/coin <contract address>") + esc(" (Solana or Base)"));
+  if (!found) return reply(ctx, esc("Usage: ") + code("/coin <contract address>") + esc(" (Solana or Robinhood Chain)"));
   ctx.sendChatAction("typing").catch(() => {});
   const keyboard = (item) => ({
     inline_keyboard: [
@@ -198,11 +198,11 @@ async function coinCommand(ctx) {
     try { hitRate = hitRateFor(await outcomes.getStats(), main); } catch { /* optional */ }
     if (!main.signalPerf) { try { main.signalPerf = await outcomes.sinceSignal(main); } catch { /* optional */ } }
     await reply(ctx, formatCoinCard(coin.items, { siteUrl: config.AUSPEX_SITE_URL, updatedAt: coin.updatedAt, hitRate }), { reply_markup: keyboard(main) });
-    if (["solana", "base"].includes(main.chain)) sendChart(ctx, await tokenSnapshot(main.address, { chain: main.chain }).catch(() => null));
+    if (["solana", "robinhood"].includes(main.chain)) sendChart(ctx, await tokenSnapshot(main.address, { chain: main.chain }).catch(() => null));
     return;
   }
   const scan = await scanAddress(found.address, { family: found.family });
-  if (!scan) return reply(ctx, esc("No DexScreener pair found on Solana or Base for this address — check it's correct, or it may be too new."));
+  if (!scan) return reply(ctx, esc("No DexScreener / GeckoTerminal pair found on Solana or Robinhood Chain for this address — check it's correct, or it may be too new."));
   await reply(ctx, formatScanCard(scan, { siteUrl: config.AUSPEX_SITE_URL }), { reply_markup: keyboard({ chain: scan.chain, address: found.address }) });
   sendChart(ctx, { chain: scan.chain, pairAddress: scan.pair?.pairAddress, symbol: scan.pair?.baseToken?.symbol || "TOKEN" });
 }
@@ -215,7 +215,7 @@ bot.action(/^analyze_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery("Analyzing...");
   const address = ctx.match[1];
   if (!process.env.ANTHROPIC_API_KEY) return reply(ctx, esc("❌ AI Analysis requires ANTHROPIC_API_KEY to be configured."));
-  const token = await tokenSnapshot(address).catch(() => null) || await tokenSnapshot(address, { chain: "base" }).catch(() => null);
+  const token = await tokenSnapshot(address).catch(() => null) || await tokenSnapshot(address, { chain: "robinhood" }).catch(() => null);
   if (!token) return ctx.reply("❌ Could not fetch token data for analysis.");
   let item = null;
   try { item = (await lookupCoin(address)).items[0] || null; } catch { /* optional */ }
@@ -274,8 +274,8 @@ bot.command("call", async (ctx) => {
   if (await isDuplicateCall(telegramId, address)) {
     return reply(ctx, esc("⚠️ You already called this token in the last 24h. Wait for the score before calling it again."));
   }
-  const token = await tokenSnapshot(address, { chain: found.family === "evm" ? "base" : "solana" }).catch(() => null);
-  if (!token) return reply(ctx, esc("❌ Token not found on Solana or Base (DexScreener)."));
+  const token = await tokenSnapshot(address, { chain: found.family === "evm" ? "robinhood" : "solana" }).catch(() => null);
+  if (!token) return reply(ctx, esc("❌ Token not found on Solana or Robinhood Chain (DexScreener / GeckoTerminal)."));
   if (!token.priceRaw || token.priceRaw <= 0) return reply(ctx, esc("❌ Could not fetch a valid price for this token. Try again later."));
   setCallCooldown(telegramId);
   if (ctx.from.username) refreshCallerElfaStats(telegramId, ctx.from.username).catch((err) => console.error("Elfa refresh error (non-fatal):", err.message));
@@ -441,8 +441,8 @@ async function withCache(ctx, fn) {
 
 bot.command("feed", (ctx) => withCache(ctx, ({ payload, updatedAt }) => {
   const arg = (argsOf(ctx)[0] || "").toLowerCase();
-  const chain = arg === "sol" ? "solana" : ["solana", "base"].includes(arg) ? arg : null;
-  const items = signalItems(payload).filter((it) => chain || ["solana", "base"].includes(it.chain));
+  const chain = parseChainArg(arg);
+  const items = signalItems(payload).filter((it) => chain || ["solana", "robinhood"].includes(it.chain));
   return reply(ctx, formatFeed(payload, { chain, limit: 5, updatedAt, items }));
 }));
 
@@ -452,8 +452,14 @@ bot.command("launches", (ctx) => withCache(ctx, ({ payload }) =>
 bot.command("grads", (ctx) => withCache(ctx, ({ payload }) =>
   reply(ctx, formatItemList("🎓 JUST GRADUATED", graduationItems(payload), { limit: 10, empty: "No graduations in the cache yet." }))));
 
+// "sol" / "solana" / "rh" / "hood" / "robinhood" -> chain id; anything else (incl. "all", "both") -> null = every chain
+function parseChainArg(arg) {
+  const a = String(arg || "").toLowerCase();
+  return ["sol", "solana"].includes(a) ? "solana" : ["rh", "hood", "robinhood", "robin"].includes(a) ? "robinhood" : null;
+}
+
 bot.command("early", (ctx) => withCache(ctx, ({ payload, updatedAt }) =>
-  reply(ctx, formatEarly(payload, { items: earlyItems(payload), updatedAt, limit: 6 }))));
+  reply(ctx, formatEarly(payload, { items: earlyItems(payload), updatedAt, limit: 6, chain: parseChainArg(argsOf(ctx)[0]) }))));
 
 bot.command("perf", async (ctx) => {
   const by = (argsOf(ctx)[0] || "kind").toLowerCase();

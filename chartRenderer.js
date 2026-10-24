@@ -15,7 +15,7 @@ const HEADERS = { Accept: "application/json;version=20230302" };
  * Fetch OHLCV candles for a pool.
  * Returns array of { t, o, h, l, c, v }
  */
-export async function fetchOHLCV(poolAddress, timeframe = "hour", limit = 48, network = "base") {
+export async function fetchOHLCV(poolAddress, timeframe = "hour", limit = 48, network = "solana") {
   const url = `${GECKO}/networks/${network}/pools/${poolAddress}/ohlcv/${timeframe}?limit=${limit}&currency=usd`;
   const res = await fetch(url, { headers: HEADERS });
   if (!res.ok) throw new Error(`OHLCV fetch failed: ${res.status}`);

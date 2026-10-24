@@ -10,21 +10,27 @@ autopost, charts, and the smart-call and X-follow watchers.
 
 | Command | What it does |
 |---|---|
-| `/feed [solana\|base]` | Top signals from the Auspex cache with the site's badges |
-| `/coin <CA>` (alias `/check`) | Full Auspex card for any coin on the board (signal / launch / graduation). Off-board CAs fall back to a live DexScreener + RugCheck (Solana) / GoPlus (Base) scan, like the site's CA scanner |
+| `/feed [solana\|robinhood]` | Top signals from the Auspex cache with the site's badges |
+| `/coin <CA>` (alias `/check`) | Full Auspex card for any coin on the board (signal / launch / graduation). Off-board CAs fall back to a live DexScreener (GeckoTerminal for Robinhood bonding-curve tokens) + RugCheck (Solana) / GoPlus chain 4663 (Robinhood Chain) scan, like the site's CA scanner |
 | `/launches`, `/grads` | Just launched (pump.fun / LetsBonk) and just graduated, with dev-reputation badges |
-| `/early` | Bonding-curve scanner (worker `lib/early-track.js`): EARLY SIGNAL and FINAL STRETCH cards with the site's numbers and badges, the about-to-graduate list, and early-curve paper stats (win rate, 2×, 3×/10×/$100k, median peak / exit, fill rate) |
+| `/early [solana\|robinhood]` | Bonding-curve scanner (worker `lib/early-track.js`), one chain or both (`rh`/`hood` and `sol` work too): EARLY SIGNAL and FINAL STRETCH cards with the site's numbers and badges, the about-to-graduate list, and early-curve paper stats (win rate, 2×, 3×/10×/$100k, median peak / exit, fill rate) |
 | `/paper` | Paper-trading results (same query and test-mode filtering as the site) |
 | `/hof` | Hall of Fame |
 | `/perf [kind\|score\|source\|badge\|chain]` | Signal performance, like the site's panel: N, hit +50%, 2×, rug rate, median 1h / 24h |
 | `/alerts on\|off`, `/alerts`, `/filters` | Turn alerts on/off for this chat; show the rules and engine status |
 | `/filter <key> <value>` | Change one rule, see below |
-| `/call <CA>` | Tracked call, Solana or Base, posted with Auspex badges and scored at 24h |
+| `/call <CA>` | Tracked call, Solana or Robinhood Chain, posted with Auspex badges and scored at 24h |
 | `/mystats`, `/leaderboard`, `/register`, `/verify @x`, `/verifypaid` | Caller accounts and rankings |
 | `/start`, `/paid <tx>`, `/status` | $10/month subscription, USDC (Base/Solana) or SOL |
 | `/addaccount`, `/removeaccount`, `/watchlist` | Owner only: X accounts for the follow watcher |
 
 In groups only admins can change alerts.
+
+**Chains.** Auspex tracks **Solana and Robinhood Chain** only (Base was dropped). Early cards and alerts carry the chain;
+Robinhood cards add the launch venue (Pons / Uni v4 / Doppler), the EVM safety verdict and the observed buy fee, with the
+same text as the site. `/filter chains solana|robinhood|all` limits a chat's alerts; saved rules that only named `base`
+fall back to both chains. `rugsafe on` means RugCheck "safe" on Solana and EVM safety "ok" on Robinhood Chain.
+Subscription payments still accept USDC on Base (that's the payment rail, not a tracked chain).
 
 ### Alert rules (`/filter`)
 
@@ -74,12 +80,12 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 | Early scanner (New / Early Signal / Final Stretch / Graduated, curve metrics, first-10, bundle launch→now, funding, deployer, flow) | ✅ `earlyScanner` | ✅ | ✅ `/early`, EARLY SIGNAL alerts, early rules; badges parity-tested against `earlyCardHTML` |
 | Early-curve paper (exit ladder, 2×/3×/10×/$100k, sustained $100k, fill rate) | ✅ `earlyPaper` | ✅ | ✅ in `/early` |
 | Hall of Fame | backfill | ✅ | ✅ `/hof` |
-| CA scanner (DexScreener + RugCheck) | – | ✅ Solana, Base | ✅ `/coin` fallback (+ GoPlus for Base) |
+| CA scanner (DexScreener + RugCheck / GoPlus) | – | ✅ Solana, Robinhood Chain | ✅ `/coin` fallback (+ GoPlus 4663 for Robinhood Chain) |
 | Signal performance: "since signal" chip, perf table | ✅ `signalPerf`, `signalPerformance` | ✅ | ✅ alerts / `/coin` / lists, `/perf`, `hitrate` rule (payload first, table fallback) |
 | Alerts with user rules | – | ❌ | ✅ |
 | Subscriptions / payments / channel access | – | ❌ | ✅ (payment checks hardened) |
 | Caller calls, scoring, leaderboard, X verify | – | ❌ | ✅ (works for Solana now) |
-| Charts | – | ❌ | ✅ (Base and Solana) |
+| Charts | – | ❌ | ✅ (Solana and Robinhood Chain, GeckoTerminal OHLCV) |
 | AI commentary / daily digest / anomaly watcher | – | ❌ | ✅ when `ANTHROPIC_API_KEY` is set |
 | Smart-call watcher (CAs in source groups) | – | ❌ | ✅ gated on Auspex flags (Elfa retired) |
 | X follow watcher | – | ❌ | ⚠️ needs paid X API; Nitter off |
@@ -89,7 +95,7 @@ Every alert links to the coin on the site (`?chain=&ca=`) and DexScreener.
 - **`vigil-bot/`**: an old duplicate of the root files that nothing imports.
 - **`nitterScraper.js`**: every public Nitter instance was dead or redirecting in Oct 2026. It's off by default (`NITTER_FALLBACK`).
 - **Elfa smart-stats (`elfaClient.js`)**: `/v2/account/smart-stats` is retired on 2026-10-28, and the bot stops calling it after that date. The v3 replacement only partly covers it, so the smart-call watcher now gates on Auspex flags instead.
-- **GeckoTerminal-only Base trending autopost and `calcRugScore` cards**: replaced by Auspex signals and badges. `AUTOPOST_SOURCE=gecko` keeps the old post.
+- **GeckoTerminal-only trending autopost and `calcRugScore` cards**: replaced by Auspex signals and badges. `AUTOPOST_SOURCE=gecko` keeps the old post, now on `GECKO_NETWORK` (default `robinhood`; Base is no longer tracked).
 
 ## Database
 

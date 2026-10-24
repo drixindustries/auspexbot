@@ -7,7 +7,7 @@ import { formatTopPost } from "./lib/format.js";
 
 /**
  * Posts the top Auspex signals (same feed, scores and badges as the site) to the private channel.
- * AUTOPOST_SOURCE=gecko restores the old GeckoTerminal Base-trending post.
+ * AUTOPOST_SOURCE=gecko posts GeckoTerminal trending pools instead (GECKO_NETWORK, default robinhood).
  * Agent 1 (token commentary) enriches each card with a 2-3 sentence read when ANTHROPIC_API_KEY is set.
  */
 export async function postTrending(bot) {

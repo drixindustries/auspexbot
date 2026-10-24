@@ -3,8 +3,8 @@ const HEADERS = { Accept: "application/json;version=20230302" };
 
 export async function fetchTokenData(address) {
   const [tokenRes, poolsRes] = await Promise.all([
-    fetch(`${GECKO}/networks/base/tokens/${address}`, { headers: HEADERS }),
-    fetch(`${GECKO}/networks/base/tokens/${address}/pools?page=1`, { headers: HEADERS }),
+    fetch(`${GECKO}/networks/${GECKO_NETWORK}/tokens/${address}`, { headers: HEADERS }),
+    fetch(`${GECKO}/networks/${GECKO_NETWORK}/tokens/${address}/pools?page=1`, { headers: HEADERS }),
   ]);
 
   if (!tokenRes.ok) throw new Error("Token not found on Base");
@@ -50,7 +50,7 @@ export async function fetchTokenData(address) {
  */
 export async function fetchTopPoolAddress(tokenAddress) {
   const res = await fetch(
-    `${GECKO}/networks/base/tokens/${tokenAddress}/pools?page=1`,
+    `${GECKO}/networks/${GECKO_NETWORK}/tokens/${tokenAddress}/pools?page=1`,
     { headers: HEADERS }
   );
   if (!res.ok) return null;
@@ -63,9 +63,12 @@ export async function fetchTopPoolAddress(tokenAddress) {
  * Fetch top trending tokens on Base from GeckoTerminal.
  * Returns array of token objects.
  */
+// Legacy GeckoTerminal helpers (AUTOPOST_SOURCE=gecko fallback). Base is no longer tracked: Robinhood Chain by default.
+export const GECKO_NETWORK = process.env.GECKO_NETWORK || "robinhood";
+
 export async function fetchTrendingBase(limit = 5) {
   const res = await fetch(
-    `${GECKO}/networks/base/trending_pools?page=1`,
+    `${GECKO}/networks/${GECKO_NETWORK}/trending_pools?page=1`,
     { headers: HEADERS }
   );
 

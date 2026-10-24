@@ -92,6 +92,52 @@ test("alert engine: early signals go out once, fresh only, same dedupe + rate li
   await store.saveRule({ chatId: "9", enabled: true, filters: { ...DEFAULT_FILTERS, kinds: ["early"], maxPerHour: 60 } });
   const r = await engine.tick();
   const coins = r.sent.map((s) => s.coin);
-  assert.deepEqual(coins.sort(), ["EGOOD", "STRCH"]); // dev-sold, unfired and 25-min-old signals are held back
+  assert.deepEqual(coins.sort(), ["EGOOD", "HOOD", "STRCH"]); // dev-sold, unfired and 25-min-old signals are held back; HOOD = Robinhood Chain
   assert.equal((await engine.tick()).sent.length, 0); // dedupe
+});
+
+test("robinhood early cards: chain-tagged items, ETH conviction, venue / safety / buy-fee badges", () => {
+  const items = Object.fromEntries(earlyItems(buildPayload(NOW)).map((i) => [i.address, i]));
+  const rh = items[ADDR.rhEarly];
+  assert.equal(rh.chain, "robinhood");
+  assert.equal(rh.quoteSymbol, "ETH");
+  assert.deepEqual(badgesFor(rh).map((b) => b.text), ["💪 CONVICTION 0.41 ETH", "Pons", "✅ safety ok", "buy fee 7.5%"]);
+  assert.deepEqual(badgesFor(items[ADDR.rhPool]).map((b) => b.text), ["Uni v4", "\u26A0 safety pending"]);
+  assert.equal(items[ADDR.earlyGood].chain, "solana");
+});
+
+test("alert rules: chain filter (solana / robinhood / all), Base no longer accepted", () => {
+  const items = Object.fromEntries(earlyItems(buildPayload(NOW)).map((i) => [i.address, i]));
+  const rh = items[ADDR.rhEarly];
+  const def = normalizeFilters({});
+  assert.deepEqual(def.chains, ["solana", "robinhood"]);
+  assert.equal(evaluate(rh, { kinds: ["early"] }).pass, true);
+  const solOnly = applyFilterCommand({}, "chains", "sol").filters;
+  assert.ok(evaluate(rh, { ...solOnly, kinds: ["early"] }).reasons.some((r) => r.startsWith("chain robinhood")));
+  const rhOnly = applyFilterCommand({}, "chains", "rh").filters;
+  assert.deepEqual(rhOnly.chains, ["robinhood"]);
+  assert.equal(evaluate(items[ADDR.earlyGood], { ...rhOnly, kinds: ["early"] }).pass, false);
+  assert.deepEqual(applyFilterCommand({}, "chains", "all").filters.chains, ["solana", "robinhood"]);
+  assert.ok(applyFilterCommand({}, "chains", "base").error);
+  // stored rules from before the switch that only named base fall back to the defaults
+  assert.deepEqual(normalizeFilters({ chains: ["base"] }).chains, ["solana", "robinhood"]);
+  // rugsafe on Robinhood = EVM safety verdict ok
+  assert.equal(evaluate(rh, { kinds: ["early"], requireRugSafe: true }).pass, true);
+  assert.ok(evaluate(items[ADDR.rhPool], { kinds: ["early"], arms: ["early_curve"], requireRugSafe: true }).reasons.some((r) => r.includes("EVM safety pending")));
+});
+
+test("/early chain filter: one chain or both, never mixing the other chain's rows", () => {
+  const p = buildPayload(NOW);
+  const items = earlyItems(p);
+  const rh = formatEarly(p, { items, now: NOW, chain: "robinhood" });
+  assert.match(rh, /Robinhood Chain/);
+  assert.match(rh, /HOOD/);
+  assert.doesNotMatch(rh, /EGOOD/);
+  assert.match(rh, /ETH \$2377/);
+  const sol = formatEarly(p, { items, now: NOW, chain: "solana" });
+  assert.doesNotMatch(sol, /HOOD/);
+  assert.match(sol, /EGOOD/);
+  const both = formatEarly(p, { items, now: NOW });
+  assert.match(both, /\\\[RH\\\]/);
+  for (const t of [rh, sol, both]) assert.deepEqual(validateMarkdownV2(t), [], t);
 });
