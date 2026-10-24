@@ -17,6 +17,11 @@ export const ADDR = {
   staleLaunch: "StaLeLaunchGGGGGGGGGGGGGGGGGGGGGGGGGGGGGpump",
   safeGrad: "SafeGradHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHpump",
   ruggedGrad: "RuggedGradJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJpump",
+  earlyGood: "EarLyGoodKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKpump",
+  earlyDevSold: "EarLyDevSo1dLLLLLLLLLLLLLLLLLLLLLLLLLLLpump",
+  stretch: "Stretch1NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNpump",
+  earlyNew: "EarLyNewPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpump",
+  earlyStale: "EarLyStaLeQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQpump",
 };
 
 const CREATOR = { proven: "ProvenDevWa11etKKKKKKKKKKKKKKKKKKKKKKKKKKKK", rugger: "RugDevWa11etMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM" };
@@ -92,5 +97,33 @@ export function buildPayload(nowMs = Date.now(), base = realPayload(), { perf = 
   p.justLaunched[2].signalPerf = perfOf({ kind: "launch", basis: "mcap", returnPct: null, maxUpPct: null, maxDrawdownPct: null, checkpoints: {}, firstSeenAt: iso(2) });
   p.justGraduated[1].signalPerf = perfOf({ kind: "graduation", returnPct: -97, rugged: true, liqCollapsed: true, maxUpPct: 15, maxDrawdownPct: -97, firstSeenAt: iso(6), checkpoints: { "5m": -97 }, status: "done" });
   if (perf) p.signalPerformance = signalPerformance(nowMs);
+  p.earlyScanner = earlyScanner(iso);
+  p.earlyPaper = { updatedAt: iso(0), windowDays: 7, early_curve: { open: 1, closed: 12, unfilled: 2, winRatePct: 41.7, win2xPct: 16.7, hit3xPct: 25, hit10xPct: 8.3, hit100kPct: 8.3, sustained100kPct: 8.3, medianPeakMultiple: 1.9, medianRealizedMultiple: 0.92, fillRatePct: 85.7, exitReasons: { trailing_stop: 4, hard_stop: 3 } } };
   return p;
+}
+
+// Worker lib/early-track.js board(): one card per mint, features spread on the card.
+function earlyScanner(iso) {
+  const base = (o) => ({ launchpad: "pump.fun", creator: "Cre8or1111111111111111111111111111111111111", createdAt: iso(3), graduatedAt: null, brand: null, creatorFlags: null, matchedMetas: [], openPositions: [], aboutToGraduate: false,
+    hardNegatives: [], blockers: [], components: { buyerVelocity: 12 }, signals: {}, ageSec: 140, coverage: "full", mcapUsd: 8_200, progress: 0.18, progressTokens: 0.31, standardCurve: true, gradMcapUsd: 41_800,
+    trades: 120, buys: 100, sells: 20, buyRatioRecent: 0.82, uniqueBuyers: 64, buyersPerMin: 31, netSolPerMin: 6.4, largestBuyerPct: 3.1, top10Pct: 21, devPct: 1.9, devSold: false, devSoldPct: 0,
+    bundlePct: 0.4, sniperPct: 7, bundleLaunchPct: 2.3, bundleNowPct: 1.9, first10Count: 10, first10Holding: 9, first10Sold: 1, smartBuyers: 0, convictionBuys: 0, convictionSoftBuys: 0, largestConvictionSol: null,
+    tradersPerSol: 3.2, tradeSizeCv: 0.9, buyRatio1mVol: 0.8, volMcapPct1m: 24, avgSecBetweenSwaps: 1.4, fundingChecked: 0, timeTo10kSec: null, ...o });
+  const cards = {
+    early_signal: [
+      base({ mint: ADDR.earlyGood, name: "Early Good", symbol: "EGOOD", column: "early_signal", earlyScore: 74, signals: { early_curve: iso(2) }, smartBuyers: 2, convictionBuys: 1, largestConvictionSol: 4.6,
+        matchedMetas: ["cat"], creatorFlags: { bad: [], good: { tier: "proven" }, serialWinner: false }, openPositions: ["early_curve"],
+        fundingChecked: 20, freshBuyers: 6, dormantBuyers: 2, cexFundedBuyers: 5, uniqueFunders: 11, sharedFunderMax: 1, freshCluster5m: 4, freshCluster5mSol: 3.2, deployerAgeMin: 4000, deployerCexFunded: true, deployerFresh: false, deployerDrainedPct: 0, deployerBalanceSol: 3.1 }),
+      base({ mint: ADDR.earlyDevSold, name: "Dev Sold", symbol: "DSOLD", column: "early_signal", earlyScore: 10, signals: { early_curve: iso(4) }, devSold: true, devSoldPct: 100, hardNegatives: ["dev_sold"],
+        creatorFlags: { bad: [{ kind: "confirmed", sourceId: "auspex", label: "Auspex own rug-dev list", reason: "RUGCHECK_RUGGED on 1 mint" }], good: { tier: "promising" }, serialWinner: false } }),
+      base({ mint: ADDR.earlyStale, name: "Stale Early", symbol: "STEARLY", column: "early_signal", earlyScore: 80, signals: { early_curve: iso(25) } }),
+    ],
+    final_stretch: [
+      base({ mint: ADDR.stretch, name: "Stretch Run", symbol: "STRCH", column: "final_stretch", earlyScore: 58, signals: { final_stretch: iso(1) }, progress: 0.72, mcapUsd: 24_000, aboutToGraduate: false, convictionSoftBuys: 1, largestConvictionSol: 3.1,
+        creatorFlags: { bad: [{ kind: "heuristic", sourceId: "allenhark", label: "AllenHark blacklist (automated heuristic, unverified)" }], good: null, serialWinner: true }, matchedMetas: ["moon", "dog", "x"] }),
+    ],
+    new: [base({ mint: ADDR.earlyNew, name: "Just New", symbol: "JNEW", column: "new", earlyScore: 35, blockers: ["too_young", "few_buyers"], ageSec: 20, aboutToGraduate: false })],
+    graduated: [],
+  };
+  return { generatedAt: iso(0), solUsd: 101.9, tracked: 40, columns: cards, aboutToGraduate: [{ mint: ADDR.stretch, symbol: "STRCH", progress: 0.86, mcapUsd: 31_000, buyersPerMin: 40 }], stats: { signals: { early_curve: 3, final_stretch: 1 } } };
 }

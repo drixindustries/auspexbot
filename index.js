@@ -14,9 +14,9 @@ import { startSmartCallWatcher } from "./smartCallWatcher.js";
 import { formatPaymentMessage, formatSubConfirmed, formatAlreadySubbed } from "./formatter.js";
 import { esc, code } from "./lib/md.js";
 import { auspexData, outcomes, lookupCoin } from "./lib/auspex.js";
-import { signalItems, launchItems, graduationItems } from "./lib/normalize.js";
+import { signalItems, launchItems, graduationItems, earlyItems } from "./lib/normalize.js";
 import { badgesFor } from "./lib/badges.js";
-import { formatCoinCard, formatScanCard, formatFeed, formatItemList, formatPaper, formatHallOfFame, formatPerf, badgeLine, siteCoinUrl, compactUsd, pct } from "./lib/format.js";
+import { formatCoinCard, formatScanCard, formatFeed, formatItemList, formatPaper, formatHallOfFame, formatPerf, formatEarly, badgeLine, siteCoinUrl, compactUsd, pct } from "./lib/format.js";
 import { extractAddress, scanAddress, tokenSnapshot } from "./lib/scan.js";
 import { applyFilterCommand, describeFilters, normalizeFilters, DEFAULT_FILTERS } from "./lib/rules.js";
 import { createSupabaseStore } from "./lib/alertStore.js";
@@ -129,6 +129,7 @@ const HELP = [
     ["/coin <CA>", "full badges for any coin (alias /check; works in groups)"],
     ["/launches", "recent pump.fun / LetsBonk launches"],
     ["/grads", "recent graduations"],
+    ["/early", "bonding-curve scanner: EARLY SIGNAL, FINAL STRETCH, about to graduate, early paper stats"],
     ["/paper", "paper-trading results"],
     ["/hof", "Hall of Fame"],
     ["/perf [kind|score|source|badge|chain]", "signal performance: hit rates and returns since signal"],
@@ -136,7 +137,7 @@ const HELP = [
   ["Alerts", [
     ["/alerts on|off", "DM / group alerts for coins matching your filters"],
     ["/alerts", "show your filters"],
-    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5, reset"],
+    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds early,graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5; early: early_score 60, mcap 4k-15k, bundle 4, sniper 20, top10 30, buyers 20, first10 7, smart on, arms early|stretch; reset"],
   ]],
   ["Callers", [
     ["/call <CA>", "submit a tracked call (Solana or Base), scored at 24h"],
@@ -450,6 +451,9 @@ bot.command("launches", (ctx) => withCache(ctx, ({ payload }) =>
 
 bot.command("grads", (ctx) => withCache(ctx, ({ payload }) =>
   reply(ctx, formatItemList("🎓 JUST GRADUATED", graduationItems(payload), { limit: 10, empty: "No graduations in the cache yet." }))));
+
+bot.command("early", (ctx) => withCache(ctx, ({ payload, updatedAt }) =>
+  reply(ctx, formatEarly(payload, { items: earlyItems(payload), updatedAt, limit: 6 }))));
 
 bot.command("perf", async (ctx) => {
   const by = (argsOf(ctx)[0] || "kind").toLowerCase();

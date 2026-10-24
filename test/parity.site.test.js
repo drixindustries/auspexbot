@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 import { buildPayload } from "./fixtures/synthetic.js";
-import { signalItems, launchItems, graduationItems } from "../lib/normalize.js";
+import { signalItems, launchItems, graduationItems, earlyItems } from "../lib/normalize.js";
 import { badgesFor } from "../lib/badges.js";
 import { allItems } from "../lib/normalize.js";
 import { perfChipText } from "../lib/format.js";
@@ -29,7 +29,7 @@ function loadSite(html) {
     console, URLSearchParams,
   };
   vm.createContext(ctx);
-  const api = vm.runInContext(`(function () {${body}\n;return { renderSignalRowHTML, renderLaunchedPanel, renderGraduatedPanel, perfChipHTML: typeof perfChipHTML === "function" ? perfChipHTML : null };})()`, ctx);
+  const api = vm.runInContext(`(function () {${body}\n;return { renderSignalRowHTML, renderLaunchedPanel, renderGraduatedPanel, perfChipHTML: typeof perfChipHTML === "function" ? perfChipHTML : null, earlyCardHTML: typeof earlyCardHTML === "function" ? earlyCardHTML : null };})()`, ctx);
   return { ctx: api, panels };
 }
 
@@ -85,4 +85,21 @@ test("'since signal' chip text == site perfChipHTML (auspex-site feat/signal-per
   for (const it of items) assert.equal(perfChipText(it.signalPerf, Date.now()), decode(ctx.perfChipHTML(it.signalPerf)), it.symbol);
   for (const p of [{ returnPct: 150.4, firstSeenAt: new Date(Date.now() - 3 * 86400e3).toISOString() }, { returnPct: -0.04, firstSeenAt: new Date().toISOString() }, { returnPct: null, basis: null }])
     assert.equal(perfChipText(p, Date.now()), decode(ctx.perfChipHTML(p)));
+});
+
+test("early scanner cards: bot badges == site earlyCardHTML badges (auspex-site feat/early-entry-scanner)", { skip }, (t) => {
+  const { ctx } = loadSite(fs.readFileSync(HTML, "utf8"));
+  if (!ctx.earlyCardHTML) return t.skip("site has no early scanner (older branch)");
+  const p = buildPayload(Date.now());
+  const cards = Object.values(p.earlyScanner.columns).flat();
+  const items = earlyItems(p);
+  assert.ok(items.length >= 4);
+  for (const it of items) {
+    const html = ctx.earlyCardHTML(cards.find((c) => c.mint === it.address));
+    const site = spans(html).map(norm);
+    const mine = badgesFor(it).map((b) => b.text);
+    assert.deepEqual(mine, site, `early ${it.symbol}: bot [${mine.join(" | ")}] vs site [${site.join(" | ")}]`);
+    counted.badges += mine.length;
+    counted.security += mine.filter((x) => SECURITY.test(x)).length;
+  }
 });
