@@ -137,7 +137,7 @@ const HELP = [
   ["Alerts", [
     ["/alerts on|off", "DM / group alerts for coins matching your filters"],
     ["/alerts", "show your filters"],
-    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds early,graduation, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5; early: early_score 60, mcap 4k-15k, bundle 4, sniper 20, top10 30, buyers 20, first10 7, smart on, arms early|stretch; reset"],
+    ["/filter <key> <value>", "e.g. score 70, chains solana, kinds early,graduation,momentum, dev proven, rugsafe on, liq 20k, exclude heuristic, include heuristic, hitrate 40, rate 5; early: early_score 60, mcap 4k-15k, bundle 4, sniper 20, top10 30, buyers 20, first10 7, smart on, arms early|stretch; momentum (post-grad): mcap 8k-80k; reset"],
   ]],
   ["Callers", [
     ["/call <CA>", "submit a tracked call (Solana or Base), scored at 24h"],
