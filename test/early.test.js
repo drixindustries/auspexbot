@@ -141,3 +141,32 @@ test("/early chain filter: one chain or both, never mixing the other chain's row
   assert.match(both, /\\\[RH\\\]/);
   for (const t of [rh, sol, both]) assert.deepEqual(validateMarkdownV2(t), [], t);
 });
+
+test("v4_direct (Robinhood direct Uniswap v4 launches): arm, badge, alert filter, /early section and paper lines", () => {
+  const p = buildPayload(NOW);
+  const items = Object.fromEntries(earlyItems(p).map((i) => [i.address, i]));
+  const v4 = items[ADDR.rhV4];
+  assert.equal(v4.arm, "v4_direct");
+  assert.equal(v4.fired, true);
+  assert.deepEqual(badgesFor(v4).map((b) => b.text), ["⚡ V4 DIRECT ✓", "Uni v4", "✅ safety ok"]);
+  // opt-in: default arms leave it out; "arms v4" / "all" lets it through
+  assert.ok(evaluate(v4, normalizeFilters({ ...DEFAULT_FILTERS, exclude: [] })).reasons.some((r) => /arm v4_direct not in/.test(r)));
+  const on = applyFilterCommand(normalizeFilters({ ...DEFAULT_FILTERS, exclude: [] }), "arms", "early,stretch,v4").filters;
+  assert.deepEqual(on.arms, ["early_curve", "final_stretch", "v4_direct"]);
+  assert.equal(evaluate(v4, on).pass, true, evaluate(v4, on).reasons.join("; "));
+  assert.deepEqual(applyFilterCommand({}, "arms", "all").filters.arms, ["early_curve", "final_stretch", "v4_direct"]);
+  assert.match(applyFilterCommand({}, "arms", "bogus").error, /early, stretch, v4/);
+  const alert = formatAlert(v4, { now: NOW });
+  assert.match(alert, /V4 DIRECT · ROBINHOOD/);
+  assert.match(alert, /opened \$120\\.0K \\\(\\\+242%\\\)/);
+  assert.deepEqual(validateMarkdownV2(alert), [], alert);
+  p.earlyPaper.byChain = { robinhood: { early_curve: p.earlyPaper.early_curve, v4_direct: { closed: 9, winRatePct: 33.3, peak2xPct: 22.2, win2xPct: 11.1, medianRealizedMultiple: 0.81 }, v4_control: { closed: 8, winRatePct: 25, peak2xPct: 12.5, win2xPct: 0, medianRealizedMultiple: 0.7 } } };
+  const rh = formatEarly(p, { items: earlyItems(p), now: NOW, chain: "robinhood" });
+  assert.match(rh, /V4 DIRECT \\\(Robinhood/);
+  assert.match(rh, /PRISM/);
+  assert.match(rh, /1 v4 direct/);
+  assert.match(rh, /random control: 8 closed/);
+  assert.deepEqual(validateMarkdownV2(rh), [], rh);
+  const sol = formatEarly(p, { items: earlyItems(p), now: NOW, chain: "solana" });
+  assert.doesNotMatch(sol, /V4 DIRECT|PRISM/);
+});

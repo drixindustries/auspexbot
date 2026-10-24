@@ -13,7 +13,7 @@ autopost, charts, and the smart-call and X-follow watchers.
 | `/feed [solana\|robinhood]` | Top signals from the Auspex cache with the site's badges |
 | `/coin <CA>` (alias `/check`) | Full Auspex card for any coin on the board (signal / launch / graduation). Off-board CAs fall back to a live DexScreener (GeckoTerminal for Robinhood bonding-curve tokens) + RugCheck (Solana) / GoPlus chain 4663 (Robinhood Chain) scan, like the site's CA scanner |
 | `/launches`, `/grads` | Just launched (pump.fun / LetsBonk) and just graduated, with dev-reputation badges |
-| `/early [solana\|robinhood]` | Bonding-curve scanner (worker `lib/early-track.js`), one chain or both (`rh`/`hood` and `sol` work too): EARLY SIGNAL and FINAL STRETCH cards with the site's numbers and badges, the about-to-graduate list, and early-curve paper stats (win rate, 2×, 3×/10×/$100k, median peak / exit, fill rate) |
+| `/early [solana\|robinhood]` | Early scanner (worker `lib/early-track.js`), one chain or both (`rh`/`hood` and `sol` work too): EARLY SIGNAL and FINAL STRETCH cards, a V4 DIRECT section on Robinhood (fresh direct Uniswap v4 launches: open mcap, move since the first swap, pool depth, and v4_direct vs random-control paper stats) with the site's numbers and badges, the about-to-graduate list, and early-curve paper stats (win rate, 2×, 3×/10×/$100k, median peak / exit, fill rate) |
 | `/paper` | Paper-trading results (same query and test-mode filtering as the site) |
 | `/hof` | Hall of Fame |
 | `/perf [kind\|score\|source\|badge\|chain]` | Signal performance, like the site's panel: N, hit +50%, 2×, rug rate, median 1h / 24h |
@@ -39,7 +39,7 @@ Subscription payments still accept USDC on Base (that's the payment rail, not a 
 | `score` | `/filter score 70` | Min Auspex score (signals) |
 | `chains` | `/filter chains solana` · `all` | Chains |
 | `kinds` | `/filter kinds early,graduations` · `all` | signal / launch / graduation / early (default: signal, graduation, early). Graduations the worker marks `signalEligible: false` (every graduation instant, kept as an outcome control) are never alerted |
-| `arms` | `/filter arms early` · `stretch` · `all` | Early arms: EARLY SIGNAL ($4k–$15k window) and/or FINAL STRETCH (60–85% of the curve) |
+| `arms` | `/filter arms early` · `stretch` · `v4` · `all` | Early arms: EARLY SIGNAL ($4k–$15k window), FINAL STRETCH (60–85% of the curve) and/or V4 DIRECT (Robinhood Chain direct Uniswap v4 launches, momentum at any opening mcap). V4 DIRECT is opt-in (`/filter arms early,stretch,v4`): its backtest has not shown an edge over a random entry |
 | `early_score` | `/filter early_score 65` | Min early score (the worker already requires `EARLY_MIN_SCORE`) |
 | `mcap` | `/filter mcap 4k-10k` · `5k` · `off` | Market-cap range at the signal (early only) |
 | `bundle` / `sniper` / `top10` | `/filter bundle 3` · `off` | Max % of supply: launch bundle (creator + same-slot buyers), first-3-slot snipers, top-10 holders. Unknown counts as failing |

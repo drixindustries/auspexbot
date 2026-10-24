@@ -23,6 +23,7 @@ export const ADDR = {
   earlyNew: "EarLyNewPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPpump",
   rhEarly: "0x47eaef94d3cad137e20940fc5f0fdd5c1d9ca241", // Robinhood Chain (Pons V2) early card
   rhPool: "0x00000000000000000000000000000000000a11ce", // Robinhood Chain Uniswap v4 pool launch, safety pending
+  rhV4: "0x9a2e4d16bca585b08ee0ef3906393e59e20050ed", // Robinhood Chain direct Uniswap v4 launch, V4 DIRECT fired
   earlyStale: "EarLyStaLeQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQpump",
 };
 
@@ -122,6 +123,9 @@ function earlyScanner(iso) {
       base({ mint: ADDR.rhEarly, chain: "robinhood", venue: "pons-v2", quoteSymbol: "ETH", launchpad: "pons.family", creator: "0x88c85f010f8b52c838e412cc1ac97f0fdafb986f", name: "Hood Early", symbol: "HOOD",
         column: "early_signal", earlyScore: 66, signals: { early_curve: iso(3) }, mcapUsd: 6_100, progress: 0.11, progressTokens: null, gradMcapUsd: 48_900, netSolPerMin: 0.31, convictionBuys: 1, largestConvictionSol: 0.41,
         safety: { verdict: "ok", flags: [], source: "goplus+pons-standard" }, buyFeePct: 7.5, sellFeePct: 2.5, fundingChecked: 12, freshBuyers: 3, contractWallets: 1 }),
+      base({ mint: ADDR.rhV4, chain: "robinhood", venue: "uniswap-v4", arm: "v4_direct", quoteSymbol: "ETH", launchpad: null, creator: "0x2900710a0000000000000000000000007173cae5", name: "Prism", symbol: "PRISM",
+        column: "early_signal", earlyScore: 41, signals: { v4_direct: iso(2) }, mcapUsd: 410_000, openMcapUsd: 120_000, mcapChangePct: 242, accel1m: 1.31, liquidityUsd: 61_000, lpSupplyPct: 99.9, lpRemovedPct: 0,
+        deploySec: 10, hooked: false, progress: null, gradMcapUsd: null, netSolPerMin: 1.7, sniperPct: 12, top10Pct: 31, devPct: 0, safety: { verdict: "ok", flags: [], source: "goplus" }, buyFeePct: 0 }),
     ],
     final_stretch: [
       base({ mint: ADDR.stretch, name: "Stretch Run", symbol: "STRCH", column: "final_stretch", earlyScore: 58, signals: { final_stretch: iso(1) }, progress: 0.72, mcapUsd: 24_000, aboutToGraduate: false, convictionSoftBuys: 1, largestConvictionSol: 3.1,
@@ -132,5 +136,5 @@ function earlyScanner(iso) {
       base({ mint: ADDR.earlyNew, name: "Just New", symbol: "JNEW", column: "new", earlyScore: 35, blockers: ["too_young", "few_buyers"], ageSec: 20, aboutToGraduate: false })],
     graduated: [],
   };
-  return { generatedAt: iso(0), solUsd: 101.9, quoteUsd: { solana: 101.9, robinhood: 2377 }, chains: ["solana", "robinhood"], tracked: 40, columns: cards, aboutToGraduate: [{ mint: ADDR.stretch, symbol: "STRCH", progress: 0.86, mcapUsd: 31_000, buyersPerMin: 40 }], stats: { signals: { early_curve: 3, final_stretch: 1 } } };
+  return { generatedAt: iso(0), solUsd: 101.9, quoteUsd: { solana: 101.9, robinhood: 2377 }, chains: ["solana", "robinhood"], tracked: 40, columns: cards, aboutToGraduate: [{ mint: ADDR.stretch, symbol: "STRCH", progress: 0.86, mcapUsd: 31_000, buyersPerMin: 40 }], stats: { signals: { early_curve: 3, final_stretch: 1, v4_direct: 1 } } };
 }

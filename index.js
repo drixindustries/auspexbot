@@ -129,7 +129,7 @@ const HELP = [
     ["/coin <CA>", "full badges for any coin (alias /check; works in groups)"],
     ["/launches", "recent pump.fun / LetsBonk launches"],
     ["/grads", "recent graduations"],
-    ["/early [solana|robinhood]", "bonding-curve scanner: EARLY SIGNAL, FINAL STRETCH, about to graduate, early paper stats (one chain or both)"],
+    ["/early [solana|robinhood]", "early scanner: EARLY SIGNAL, FINAL STRETCH, V4 DIRECT (Robinhood direct Uniswap v4 launches), about to graduate, early paper stats (one chain or both)"],
     ["/paper", "paper-trading results"],
     ["/hof", "Hall of Fame"],
     ["/perf [kind|score|source|badge|chain]", "signal performance: hit rates and returns since signal"],
