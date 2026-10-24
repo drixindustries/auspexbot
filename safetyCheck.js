@@ -1,19 +1,19 @@
 /**
  * GoPlus Security API — token safety check
  * Free, no API key required.
- * Chain ID 8453 = Base mainnet
+ * Chain ID 4663 = Robinhood Chain mainnet (GoPlus supports it keyless; brand-new tokens often have no report yet).
  */
 
 const GOPLUS_BASE = "https://api.gopluslabs.io/api/v1";
-const BASE_CHAIN_ID = "8453";
+const RH_CHAIN_ID = "4663";
 
 /**
- * Fetch safety data for a Base token.
+ * Fetch safety data for an EVM token (Robinhood Chain by default).
  * Returns a normalized safety object.
  */
-export async function fetchSafety(tokenAddress) {
+export async function fetchSafety(tokenAddress, chainId = RH_CHAIN_ID) {
   try {
-    const url = `${GOPLUS_BASE}/token_security/${BASE_CHAIN_ID}?contract_addresses=${tokenAddress.toLowerCase()}`;
+    const url = `${GOPLUS_BASE}/token_security/${chainId}?contract_addresses=${tokenAddress.toLowerCase()}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "AuspexBot/1.0" },
     });
